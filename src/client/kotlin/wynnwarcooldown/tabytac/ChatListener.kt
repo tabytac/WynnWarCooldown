@@ -1,8 +1,10 @@
 package wynnwarcooldown.tabytac
 
 import net.minecraft.text.Text
+import org.slf4j.LoggerFactory
 
 object ChatListener {
+    private val LOGGER = LoggerFactory.getLogger("WWC")
     private const val COOLDOWN_PHRASE = "territory is in cooldown"
     private val MINUTES_PATTERN = Regex("(\\d+)\\s*minute[s]?", RegexOption.IGNORE_CASE)
     private val SECONDS_PATTERN = Regex("(\\d+)\\s*second[s]?", RegexOption.IGNORE_CASE)
@@ -26,6 +28,8 @@ object ChatListener {
 
         if (totalSeconds > 0) {
             val adjustedSeconds = (totalSeconds - ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
+            LOGGER.info("War cooldown detected: {} minutes {} seconds ({}s total, adjusted to {}s)",
+                minutes, seconds, totalSeconds, adjustedSeconds)
             CooldownTimer.startCooldown(adjustedSeconds)
         }
     }

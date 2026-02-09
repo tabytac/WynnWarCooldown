@@ -33,7 +33,6 @@ object ModConfig {
     var showBackgroundBox = true
     var textColorHex = "00FF00"
     var hudScale = 1.0f
-    var activeConfigScreen: Screen? = null
 
     private val configFile: File by lazy {
         val configDir = FabricLoader.getInstance().configDir.toFile()
@@ -146,9 +145,7 @@ object ModConfig {
         buildTimerCategory(builder, entryBuilder)
         buildActionCategory(builder, entryBuilder)
 
-        val screen = builder.build()
-        activeConfigScreen = screen
-        return screen
+        return builder.build()
     }
 
     private fun buildGeneralCategory(builder: ConfigBuilder, entryBuilder: ConfigEntryBuilder) {

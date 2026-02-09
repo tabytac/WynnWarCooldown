@@ -13,21 +13,12 @@ object CooldownHUD {
     private const val SCALE_MAX = 5.0f
 
     fun render(drawContext: DrawContext) {
-        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud) return
+        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud || !CooldownTimer.isActive()) return
 
         val client = MinecraftClient.getInstance()
-        val isConfigOpen = client.currentScreen == ModConfig.activeConfigScreen
-
-        // Show preview timer when config is open, otherwise show real timer
-        if (!CooldownTimer.isActive() && !isConfigOpen) return
-
-        val label = if (isConfigOpen && !CooldownTimer.isActive()) {
-            "Cooldown: 05:00" // Preview timer
-        } else {
-            val remaining = CooldownTimer.getRemainingSeconds()
-            val formattedTime = CooldownTimer.formatTime(remaining)
-            "Cooldown: $formattedTime"
-        }
+        val remaining = CooldownTimer.getRemainingSeconds()
+        val formattedTime = CooldownTimer.formatTime(remaining)
+        val label = "Cooldown: $formattedTime"
 
         renderTimerBox(drawContext, client, label)
     }
