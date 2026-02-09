@@ -10,7 +10,6 @@ import net.minecraft.util.Identifier
 object SoundManager {
     private var warHornEvent: SoundEvent? = null
 
-    // Register the sound event
     fun registerSoundEvent() {
         val soundId = Identifier.of("wynn-war-cooldown", "war_horn")
         val soundEvent = SoundEvent.of(soundId)
@@ -18,22 +17,31 @@ object SoundManager {
         warHornEvent = soundEvent
     }
 
-    fun playWarHornSound() {
+    fun playCooldownSound() {
         val client = MinecraftClient.getInstance()
-        client.world?.let { world ->
-            client.player?.let { player ->
-                val soundEvent = warHornEvent ?: return
-                world.playSound(
-                    player.x,
-                    player.y,
-                    player.z,
-                    soundEvent,
-                    SoundCategory.PLAYERS,
-                    ModConfig.soundVolume,
-                    1.0f,
-                    false
-                )
-            }
+        val world = client.world ?: return
+        val player = client.player ?: return
+
+        val soundId = getSoundEventForType(ModConfig.selectedSound) ?: return
+
+        world.playSound(
+            player.x,
+            player.y,
+            player.z,
+            soundId,
+            SoundCategory.PLAYERS,
+            ModConfig.soundVolume,
+            1.0f,
+            false
+        )
+    }
+
+    private fun getSoundEventForType(soundType: SoundType): SoundEvent? {
+        return when (soundType) {
+            SoundType.WAR_HORN -> warHornEvent
+            SoundType.EXPERIENCE_ORB -> Registries.SOUND_EVENT.get(Identifier.tryParse("minecraft:entity.experience_orb.pickup"))
+            SoundType.BELL -> Registries.SOUND_EVENT.get(Identifier.tryParse("minecraft:block.bell.use"))
+            SoundType.LEVEL_UP -> Registries.SOUND_EVENT.get(Identifier.tryParse("minecraft:entity.player.levelup"))
         }
     }
 }

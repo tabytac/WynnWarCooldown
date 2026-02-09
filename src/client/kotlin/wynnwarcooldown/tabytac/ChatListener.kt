@@ -14,26 +14,19 @@ object ChatListener {
     private val NON_TEXT_CHARS = Regex("[^\\p{L}\\p{N}\\p{P}\\p{Zs}]")
     private val WHITESPACE = Regex("\\s+")
 
-    fun init() {
-        // Wynntils hook is handled via mixin; nothing to register here.
-    }
-
     fun onWynntilsChatMessage(message: Text) {
         if (!ModConfig.isModEnabled) return
 
         val messageText = normalizeChatMessage(message.string)
+        if (!messageText.contains(COOLDOWN_PHRASE, ignoreCase = true)) return
 
-        if (messageText.contains(COOLDOWN_PHRASE, ignoreCase = true)) {
-            val minutes = MINUTES_PATTERN.find(messageText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-            val seconds = SECONDS_PATTERN.find(messageText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val minutes = MINUTES_PATTERN.find(messageText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val seconds = SECONDS_PATTERN.find(messageText)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val totalSeconds = minutes * 60 + seconds
 
-            val totalSeconds = minutes * 60 + seconds
-            if (totalSeconds <= 0) return
-
-            // Apply offset
-            val adjustedSeconds = (totalSeconds - ModConfig.timerOffsetSeconds).coerceAtLeast(0)
-
-            CooldownTimer.startCooldown(adjustedSeconds.toLong())
+        if (totalSeconds > 0) {
+            val adjustedSeconds = (totalSeconds - ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
+            CooldownTimer.startCooldown(adjustedSeconds)
         }
     }
 

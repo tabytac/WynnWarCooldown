@@ -2,36 +2,73 @@ package wynnwarcooldown.tabytac
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
+import kotlin.math.roundToInt
 
 object CooldownHUD {
-    private val textColor = 0xFF00FF00.toInt() // Green
-    private val backgroundColor = 0x80000000.toInt() // Semi-transparent black
+    private const val TEXT_COLOR_ALPHA = 0xFF000000.toInt() // Alpha mask
+    private const val BACKGROUND_COLOR = 0x80000000.toInt() // Semi-transparent black
+    private const val PADDING_X = 10
+    private const val PADDING_Y = 6
+    private const val SCALE_MIN = 0.1f
+    private const val SCALE_MAX = 5.0f
 
     fun render(drawContext: DrawContext) {
-        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud) return
-        if (!CooldownTimer.isActive()) return
+        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud || !CooldownTimer.isActive()) return
 
         val client = MinecraftClient.getInstance()
         val remaining = CooldownTimer.getRemainingSeconds()
         val formattedTime = CooldownTimer.formatTime(remaining)
+        val label = "Cooldown: $formattedTime"
 
+        renderTimerBox(drawContext, client, label)
+    }
+
+    private fun renderTimerBox(drawContext: DrawContext, client: MinecraftClient, label: String) {
         val screenWidth = client.window.scaledWidth
         val screenHeight = client.window.scaledHeight
+        val textWidth = client.textRenderer.getWidth(label)
+        val textHeight = client.textRenderer.fontHeight
 
-        // Position: center-bottom of screen (can be made configurable)
-        val x = (screenWidth / 2) - 40
-        val y = screenHeight - 60
+        val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
+        val boxWidth = ((textWidth + (PADDING_X * 2)) * scale).roundToInt()
+        val boxHeight = ((textHeight + (PADDING_Y * 2)) * scale).roundToInt()
 
-        // Draw background box
-        drawContext.fill(x - 10, y - 10, x + 90, y + 20, backgroundColor)
+        val rawX = (screenWidth * ModConfig.hudXPercent) - (boxWidth / 2f)
+        val rawY = (screenHeight * ModConfig.hudYPercent) - (boxHeight / 2f)
 
-        // Draw text
+        val x = rawX.toInt().coerceIn(0, screenWidth - boxWidth)
+        val y = rawY.toInt().coerceIn(0, screenHeight - boxHeight)
+
+        // Draw background box if enabled
+        if (ModConfig.showBackgroundBox) {
+            drawContext.fill(x, y, x + boxWidth, y + boxHeight, BACKGROUND_COLOR)
+        }
+
+        // Draw text with shadow
+        val textColor = parseHexColor(ModConfig.textColorHex)
+        drawContext.matrices.push()
+        drawContext.matrices.translate(
+            (x + (PADDING_X * scale)).toDouble(),
+            (y + (PADDING_Y * scale)).toDouble(),
+            0.0
+        )
+        drawContext.matrices.scale(scale, scale, 1.0f)
         drawContext.drawTextWithShadow(
             client.textRenderer,
-            "Cooldown: $formattedTime",
-            x,
-            y,
+            label,
+            0,
+            0,
             textColor
         )
+        drawContext.matrices.pop()
+    }
+
+    private fun parseHexColor(hexString: String): Int {
+        return try {
+            val cleanHex = hexString.replace("#", "").take(6)
+            (TEXT_COLOR_ALPHA or Integer.parseInt(cleanHex, 16))
+        } catch (e: Exception) {
+            0xFF00FF00.toInt() // Fallback to green
+        }
     }
 }
