@@ -1,9 +1,9 @@
 {
-	"required": true,
+	"required": false,
 	"package": "wynnwarcooldown.tabytac.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"ExampleClientMixin"
+		"WynntilsChatReceivedMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

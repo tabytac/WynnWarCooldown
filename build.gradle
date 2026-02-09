@@ -17,10 +17,32 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+		maven { url = "https://api.modrinth.com/maven" }
+	maven {
+		name = "TerraformersMC"
+		url = "https://maven.terraformersmc.com/"
+	}
+	maven {
+		name = "Shedaniel"
+		url = "https://maven.shedaniel.me/"
+	}
+	maven {
+		name = "Architectury"
+		url = "https://maven.architectury.dev/"
+	}
 }
 
 loom {
 	splitEnvironmentSourceSets()
+
+	runs {
+		client {
+			runDir "run-dev"
+		}
+		server {
+			runDir "run-dev"
+		}
+	}
 
 	mods {
 		"wynn-war-cooldown" {
@@ -34,12 +56,18 @@ loom {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+	implementation 'org.ow2.asm:asm:9.2' // ASM library for bytecode manipulation
+	modImplementation "maven.modrinth:wynntils:v${project.wynntils_version}-fabric"
+
+	// ModMenu and Cloth Config for configuration UI
+	modImplementation "com.terraformersmc:modmenu:13.0.3"
+	modImplementation "me.shedaniel.cloth:cloth-config-fabric:17.0.144"
 }
 
 processResources {

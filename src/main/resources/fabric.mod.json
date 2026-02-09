@@ -3,17 +3,16 @@
 	"id": "wynn-war-cooldown",
 	"version": "${version}",
 	"name": "Wynn War Cooldown",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "A simple mod that tracks the cooldown of Guild Wars in Wynncraft and displays it on the screen.",
 	"authors": [
-		"Me!"
+		"Tabytac"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/Tabytac/WynnWarCooldown"
 	},
-	"license": "CC0-1.0",
+	"license": "CC-BY-NC 4.0",
 	"icon": "assets/wynn-war-cooldown/icon.png",
-	"environment": "*",
+	"environment": "client",
 	"entrypoints": {
 		"main": [
 			{
@@ -26,20 +25,27 @@
 				"value": "wynnwarcooldown.tabytac.WynnWarCooldownClient",
 				"adapter": "kotlin"
 			}
+		],
+		"modmenu": [
+			{
+				"value": "wynnwarcooldown.tabytac.ModMenuIntegration",
+				"adapter": "kotlin"
+			}
 		]
 	},
 	"mixins": [
 		"wynn-war-cooldown.mixins.json",
-		{
-			"config": "wynn-war-cooldown.client.mixins.json",
-			"environment": "client"
-		}
+		"wynn-war-cooldown.client.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.18.4",
+		"fabricloader": ">=0.16.10",
 		"minecraft": "~1.21.4",
 		"java": ">=21",
 		"fabric-api": "*",
-		"fabric-language-kotlin": "*"
+		"fabric-language-kotlin": "*",
+		"wynntils": ">=3.0.0"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }

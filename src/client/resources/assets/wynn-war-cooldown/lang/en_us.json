@@ -1,0 +1,14 @@
+{
+  "wynn-war-cooldown.config.title": "Wynn War Cooldown Configuration",
+  "wynn-war-cooldown.config.general": "General",
+  "wynn-war-cooldown.config.enabled": "Mod Enabled",
+  "wynn-war-cooldown.config.show_timer": "Show Timer HUD",
+  "wynn-war-cooldown.config.timer": "Timer",
+  "wynn-war-cooldown.config.offset": "Timer Offset (seconds)",
+  "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = earlier, Negative = later",
+  "wynn-war-cooldown.config.format": "Time Format",
+  "wynn-war-cooldown.config.action": "Action",
+  "wynn-war-cooldown.config.command": "Command to Execute",
+  "wynn-war-cooldown.config.command.tooltip": "Command/message sent when timer ends. Use /say for chat or /request for commands",
+  "wynn-war-cooldown.config.volume": "Sound Volume"
+}

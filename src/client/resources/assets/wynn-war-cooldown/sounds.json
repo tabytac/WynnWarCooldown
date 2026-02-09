@@ -1,0 +1,13 @@
+{
+  "war_horn": {
+    "sounds": [
+      {
+        "name": "wynn-war-cooldown:war-horn",
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1,
+        "stream": false
+      }
+    ]
+  }
+}

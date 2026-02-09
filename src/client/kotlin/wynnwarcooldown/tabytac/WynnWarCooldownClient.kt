@@ -1,9 +1,24 @@
 package wynnwarcooldown.tabytac
 
 import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
+import net.minecraft.client.MinecraftClient
 
 object WynnWarCooldownClient : ClientModInitializer {
 	override fun onInitializeClient() {
-		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
+		// Register sound event
+		SoundManager.registerSoundEvent()
+
+		// Initialize chat listener
+		ChatListener.init()
+
+		// Register HUD render callback (deprecated API, suppressed)
+		@Suppress("DEPRECATION")
+		HudRenderCallback.EVENT.register { drawContext, _ ->
+			val client = MinecraftClient.getInstance()
+			if (client.player != null && !client.isPaused) {
+				CooldownHUD.render(drawContext)
+			}
+		}
 	}
 }
