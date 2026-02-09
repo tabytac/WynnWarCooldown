@@ -13,7 +13,8 @@ object WynnWarCooldownClient : ClientModInitializer {
 		@Suppress("DEPRECATION")
 		HudRenderCallback.EVENT.register { drawContext, _ ->
 			val client = MinecraftClient.getInstance()
-			if (client.player != null && !client.isPaused) {
+			val isConfigScreenOpen = client.currentScreen == ModConfig.activeConfigScreen
+			if (client.player != null && (!client.isPaused || isConfigScreenOpen)) {
 				CooldownHUD.render(drawContext)
 			}
 		}

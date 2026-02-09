@@ -28,6 +28,7 @@ object ModConfig {
     var showBackgroundBox = true
     var textColorHex = "00FF00"
     var hudScale = 1.0f
+    var activeConfigScreen: Screen? = null
 
     // HUD constants
     private const val HUD_POS_X_MIN = 0.0f
@@ -162,6 +163,8 @@ object ModConfig {
                 .build()
         )
 
-        return builder.build()
+        val screen = builder.build()
+        activeConfigScreen = screen
+        return screen
     }
 }
