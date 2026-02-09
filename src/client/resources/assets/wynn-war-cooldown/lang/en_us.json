@@ -4,6 +4,10 @@
   "wynn-war-cooldown.config.enabled": "Mod Enabled",
   "wynn-war-cooldown.config.show_timer": "Show Timer HUD",
   "wynn-war-cooldown.config.show_background": "Show Background Box",
+  "wynn-war-cooldown.config.hud_x": "HUD X Position (0-1)",
+  "wynn-war-cooldown.config.hud_x.tooltip": "0 = left, 0.5 = center, 1 = right",
+  "wynn-war-cooldown.config.hud_y": "HUD Y Position (0-1)",
+  "wynn-war-cooldown.config.hud_y.tooltip": "0 = top, 0.85 = just above hotbar, 1 = bottom",
   "wynn-war-cooldown.config.hud_scale": "HUD Scale",
   "wynn-war-cooldown.config.hud_scale.tooltip": "Scale the timer size (0.1 = smaller, 5.0 = larger)",
   "wynn-war-cooldown.config.timer": "Timer",
@@ -19,5 +23,7 @@
   "wynn-war-cooldown.config.command.tooltip": "Command/message sent when timer ends. Use /say for chat or /request for commands",
   "wynn-war-cooldown.config.volume": "Sound Volume",
   "wynn-war-cooldown.config.sound_type": "Sound Effect",
-  "wynn-war-cooldown.config.sound_type.tooltip": "Choose which sound to play when the timer ends"
+  "wynn-war-cooldown.config.sound_type.tooltip": "Choose which sound to play when the timer ends",
+  "wynn-war-cooldown.config.text_color": "Text Color",
+  "wynn-war-cooldown.config.text_color.tooltip": "Choose the color for the timer text"
 }
