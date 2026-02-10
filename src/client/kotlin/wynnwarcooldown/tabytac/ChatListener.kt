@@ -27,10 +27,12 @@ object ChatListener {
         val totalSeconds = minutes * 60 + seconds
 
         if (totalSeconds > 0) {
-            val adjustedSeconds = (totalSeconds - ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
-            LOGGER.info("War cooldown detected: {} minutes {} seconds ({}s total, adjusted to {}s)",
-                minutes, seconds, totalSeconds, adjustedSeconds)
-            CooldownTimer.startCooldown(adjustedSeconds)
+            val adjustedSeconds = (totalSeconds + ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
+
+            val territoryName = TerritoryResolver.getCurrentTerritoryName() ?: "Unknown Territory"
+            LOGGER.info("War cooldown detected: {} minutes {} seconds ({}s total, adjusted to {}s) in territory: {}",
+                minutes, seconds, totalSeconds, adjustedSeconds, territoryName)
+            CooldownTimer.startCooldown(adjustedSeconds, territoryName)
         }
     }
 

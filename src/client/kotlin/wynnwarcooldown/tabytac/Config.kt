@@ -33,6 +33,7 @@ object ModConfig {
     var showBackgroundBox = true
     var textColorHex = "00FF00"
     var hudScale = 1.0f
+    var expiredTimerMemorySeconds = 0
 
     private val configFile: File by lazy {
         val configDir = FabricLoader.getInstance().configDir.toFile()
@@ -54,6 +55,8 @@ object ModConfig {
     private const val TIMER_OFFSET_MAX = 20
     private const val EXEC_OFFSET_MIN = -20
     private const val EXEC_OFFSET_MAX = 20
+    private const val EXPIRED_MEMORY_MIN = 0
+    private const val EXPIRED_MEMORY_MAX = 60
 
     data class ConfigData(
         val isModEnabled: Boolean = true,
@@ -68,7 +71,8 @@ object ModConfig {
         val selectedSound: String = "WAR_HORN",
         val showBackgroundBox: Boolean = true,
         val textColorHex: String = "00FF00",
-        val hudScale: Float = 1.0f
+        val hudScale: Float = 1.0f,
+        val expiredTimerMemorySeconds: Int = 0
     )
 
     fun load() {
@@ -92,6 +96,7 @@ object ModConfig {
             showBackgroundBox = data.showBackgroundBox
             textColorHex = data.textColorHex
             hudScale = data.hudScale
+            expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -112,7 +117,8 @@ object ModConfig {
                 selectedSound = selectedSound.name,
                 showBackgroundBox = showBackgroundBox,
                 textColorHex = textColorHex,
-                hudScale = hudScale
+                hudScale = hudScale,
+                expiredTimerMemorySeconds = expiredTimerMemorySeconds
             )
             configFile.writeText(gson.toJson(data))
         } catch (e: Exception) {
@@ -236,6 +242,19 @@ object ModConfig {
                 .setDefaultValue(0)
                 .setSaveConsumer { soundPlayOffsetSeconds = it }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.sound_offset.tooltip"))
+                .build()
+        )
+
+        timer.addEntry(
+            entryBuilder.startIntSlider(
+                Text.translatable("wynn-war-cooldown.config.expired_memory"),
+                expiredTimerMemorySeconds,
+                EXPIRED_MEMORY_MIN,
+                EXPIRED_MEMORY_MAX
+            )
+                .setDefaultValue(0)
+                .setSaveConsumer { expiredTimerMemorySeconds = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.expired_memory.tooltip"))
                 .build()
         )
     }

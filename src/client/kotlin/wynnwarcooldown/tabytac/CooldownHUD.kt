@@ -9,32 +9,47 @@ object CooldownHUD {
     private const val BACKGROUND_COLOR = 0x80000000.toInt() // Semi-transparent black
     private const val PADDING_X = 10
     private const val PADDING_Y = 6
+    private const val LINE_SPACING = 4
     private const val SCALE_MIN = 0.1f
     private const val SCALE_MAX = 5.0f
 
     fun render(drawContext: DrawContext) {
-        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud || !CooldownTimer.isActive()) return
+        if (!ModConfig.isModEnabled || !ModConfig.showTimerHud) return
+
+        CooldownTimer.updateTimers()
+        val visibleTimers = CooldownTimer.getVisibleTimers()
+        if (visibleTimers.isEmpty()) return
 
         val client = MinecraftClient.getInstance()
-        val remaining = CooldownTimer.getRemainingSeconds()
-        val formattedTime = CooldownTimer.formatTime(remaining)
-        val label = "Cooldown: $formattedTime"
+        val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
 
-        renderTimerBox(drawContext, client, label)
+        visibleTimers.forEachIndexed { index, (territoryName, remaining) ->
+            val formattedTime = CooldownTimer.formatTime(remaining)
+            val label = "$territoryName: $formattedTime"
+            val yOffset = (index * (client.textRenderer.fontHeight + LINE_SPACING) * scale).roundToInt()
+
+            renderTimerLine(drawContext, client, label, yOffset, scale)
+        }
     }
 
-    private fun renderTimerBox(drawContext: DrawContext, client: MinecraftClient, label: String) {
+    private fun renderTimerLine(
+        drawContext: DrawContext,
+        client: MinecraftClient,
+        label: String,
+        yOffset: Int,
+        scale: Float
+    ) {
         val screenWidth = client.window.scaledWidth
         val screenHeight = client.window.scaledHeight
         val textWidth = client.textRenderer.getWidth(label)
         val textHeight = client.textRenderer.fontHeight
 
-        val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
         val boxWidth = ((textWidth + (PADDING_X * 2)) * scale).roundToInt()
         val boxHeight = ((textHeight + (PADDING_Y * 2)) * scale).roundToInt()
 
         val rawX = (screenWidth * ModConfig.hudXPercent) - (boxWidth / 2f)
-        val rawY = (screenHeight * ModConfig.hudYPercent) - (boxHeight / 2f)
+        val baseY = screenHeight * ModConfig.hudYPercent
+        val rawY = baseY + yOffset - (boxHeight / 2f)
 
         val x = rawX.toInt().coerceIn(0, screenWidth - boxWidth)
         val y = rawY.toInt().coerceIn(0, screenHeight - boxHeight)
