@@ -54,7 +54,8 @@ object CooldownTimer {
             emptyList()
         }
 
-        return (activeList + expiredList).sortedBy { it.first }
+        // Sort by remaining time ascending (shortest on top), with active timers before expired
+        return (activeList + expiredList).sortedWith(compareBy<Pair<String, Long>> { it.second == 0L }.thenBy { it.second })
     }
 
     fun updateTimers() {
@@ -92,6 +93,32 @@ object CooldownTimer {
     }
 
     fun hasActiveTimers(): Boolean = activeTimers.isNotEmpty()
+
+    fun getActiveTerritories(): List<String> {
+        return activeTimers.keys.sorted()
+    }
+
+    fun removeCooldown(territoryName: String): Boolean {
+        return if (activeTimers.containsKey(territoryName)) {
+            activeTimers.remove(territoryName)
+            expiredTimers.remove(territoryName)
+            LOGGER.info("Removed cooldown for: {}", territoryName)
+            true
+        } else {
+            false
+        }
+    }
+
+    fun clearAllTimers() {
+        activeTimers.clear()
+        expiredTimers.clear()
+        LOGGER.info("Cleared all timers")
+    }
+
+    fun clearExpiredTimers() {
+        expiredTimers.clear()
+        LOGGER.info("Cleared expired timers from memory")
+    }
 
     fun formatTime(seconds: Long): String {
         val minutes = seconds / 60

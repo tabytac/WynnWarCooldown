@@ -12,6 +12,9 @@ object WynnWarCooldownClient : ClientModInitializer {
 		// Register sound event
 		SoundManager.registerSoundEvent()
 
+		// Register client commands
+		CommandManager.registerCommands()
+
 		// Register HUD render callback (deprecated API, suppressed)
 		@Suppress("DEPRECATION")
 		HudRenderCallback.EVENT.register { drawContext, _ ->

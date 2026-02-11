@@ -24,7 +24,7 @@ object ModConfig {
     var timerOffsetSeconds = 0
     var commandExecutionOffsetSeconds = 0
     var soundPlayOffsetSeconds = 0
-    var customCommand = "/gu a"
+    var customCommand = "/gu attack"
     var showTimerHud = true
     var hudXPercent = 0.5f
     var hudYPercent = 0.85f
@@ -63,7 +63,7 @@ object ModConfig {
         val timerOffsetSeconds: Int = 0,
         val commandExecutionOffsetSeconds: Int = 0,
         val soundPlayOffsetSeconds: Int = 0,
-        val customCommand: String = "/gu a",
+        val customCommand: String = "/gu attack",
         val showTimerHud: Boolean = true,
         val hudXPercent: Float = 0.5f,
         val hudYPercent: Float = 0.85f,

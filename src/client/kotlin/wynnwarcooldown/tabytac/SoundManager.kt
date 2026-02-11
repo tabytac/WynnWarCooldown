@@ -18,11 +18,15 @@ object SoundManager {
     }
 
     fun playCooldownSound() {
+        playSound(ModConfig.selectedSound)
+    }
+
+    fun playSound(soundType: SoundType) {
         val client = MinecraftClient.getInstance()
         val world = client.world ?: return
         val player = client.player ?: return
 
-        val soundId = getSoundEventForType(ModConfig.selectedSound) ?: return
+        val soundId = getSoundEventForType(soundType) ?: return
 
         world.playSound(
             player.x,
