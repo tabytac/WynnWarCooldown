@@ -22,9 +22,8 @@ enum class SoundType(val displayName: String, val soundId: String) {
 object ModConfig {
     var isModEnabled = true
     var timerOffsetSeconds = 1
-    var commandExecutionOffsetSeconds = 0
     var soundPlayOffsetSeconds = 0
-    var customCommand = "/gu attack"
+    var sendGuildAttackAtEnd = true
     var showTimerHud = true
     var hudXPercent = 0.5f
     var hudYPercent = 0.85f
@@ -61,9 +60,8 @@ object ModConfig {
     data class ConfigData(
         val isModEnabled: Boolean = true,
         val timerOffsetSeconds: Int = 0,
-        val commandExecutionOffsetSeconds: Int = 0,
         val soundPlayOffsetSeconds: Int = 0,
-        val customCommand: String = "/gu attack",
+        val sendGuildAttackAtEnd: Boolean = true,
         val showTimerHud: Boolean = true,
         val hudXPercent: Float = 0.5f,
         val hudYPercent: Float = 0.85f,
@@ -85,9 +83,8 @@ object ModConfig {
             val data = gson.fromJson(configFile.readText(), ConfigData::class.java)
             isModEnabled = data.isModEnabled
             timerOffsetSeconds = data.timerOffsetSeconds
-            commandExecutionOffsetSeconds = data.commandExecutionOffsetSeconds
             soundPlayOffsetSeconds = data.soundPlayOffsetSeconds
-            customCommand = data.customCommand
+            sendGuildAttackAtEnd = data.sendGuildAttackAtEnd
             showTimerHud = data.showTimerHud
             hudXPercent = data.hudXPercent
             hudYPercent = data.hudYPercent
@@ -107,9 +104,8 @@ object ModConfig {
             val data = ConfigData(
                 isModEnabled = isModEnabled,
                 timerOffsetSeconds = timerOffsetSeconds,
-                commandExecutionOffsetSeconds = commandExecutionOffsetSeconds,
                 soundPlayOffsetSeconds = soundPlayOffsetSeconds,
-                customCommand = customCommand,
+                sendGuildAttackAtEnd = sendGuildAttackAtEnd,
                 showTimerHud = showTimerHud,
                 hudXPercent = hudXPercent,
                 hudYPercent = hudYPercent,
@@ -221,19 +217,6 @@ object ModConfig {
 
         timer.addEntry(
             entryBuilder.startIntSlider(
-                Text.translatable("wynn-war-cooldown.config.command_offset"),
-                commandExecutionOffsetSeconds,
-                EXEC_OFFSET_MIN,
-                EXEC_OFFSET_MAX
-            )
-                .setDefaultValue(0)
-                .setSaveConsumer { commandExecutionOffsetSeconds = it }
-                .setTooltip(Text.translatable("wynn-war-cooldown.config.command_offset.tooltip"))
-                .build()
-        )
-
-        timer.addEntry(
-            entryBuilder.startIntSlider(
                 Text.translatable("wynn-war-cooldown.config.sound_offset"),
                 soundPlayOffsetSeconds,
                 EXEC_OFFSET_MIN,
@@ -275,9 +258,12 @@ object ModConfig {
         )
 
         action.addEntry(
-            entryBuilder.startStrField(Text.translatable("wynn-war-cooldown.config.command"), customCommand)
-                .setSaveConsumer { customCommand = it }
-                .setTooltip(Text.translatable("wynn-war-cooldown.config.command.tooltip"))
+            entryBuilder.startBooleanToggle(
+                Text.translatable("wynn-war-cooldown.config.send_guild_attack"),
+                sendGuildAttackAtEnd
+            )
+                .setSaveConsumer { sendGuildAttackAtEnd = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.send_guild_attack.tooltip"))
                 .build()
         )
 

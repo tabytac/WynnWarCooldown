@@ -17,6 +17,7 @@ data class ExpiredTimer(
 
 object CooldownTimer {
     private val LOGGER = LoggerFactory.getLogger("WynnWarCooldown")
+    private const val GUILD_ATTACK_COMMAND = "guild attack"
     private val activeTimers = mutableMapOf<String, TerritoryTimer>()
     private val expiredTimers = mutableMapOf<String, ExpiredTimer>()
 
@@ -67,7 +68,7 @@ object CooldownTimer {
         activeTimers.forEach { (territoryName, timer) ->
             val remaining = ((timer.endTime - now) / 1000).coerceAtLeast(0)
             val soundTriggerTime = timer.endTime + (ModConfig.soundPlayOffsetSeconds * 1000L)
-            val commandTriggerTime = timer.endTime + (ModConfig.commandExecutionOffsetSeconds * 1000L)
+            val commandTriggerTime = timer.endTime
             val removalTime = maxOf(timer.endTime, soundTriggerTime, commandTriggerTime)
 
             // Check sound play offset
@@ -129,6 +130,8 @@ object CooldownTimer {
     }
 
     private fun executeCommand(territoryName: String) {
+        if (!ModConfig.sendGuildAttackAtEnd) return
+
         val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
 
         if (currentTerritory != null && currentTerritory != territoryName) {
@@ -139,13 +142,7 @@ object CooldownTimer {
 
         val client = MinecraftClient.getInstance()
         val player = client.player ?: return
-        val command = ModConfig.customCommand.takeIf { it.isNotEmpty() } ?: return
-
-        val actualCommand = if (command.startsWith("/")) {
-            command.substring(1)
-        } else {
-            command
-        }
+        val actualCommand = GUILD_ATTACK_COMMAND
 
         LOGGER.info("Executing command for {}: {}", territoryName, actualCommand)
         player.networkHandler?.sendCommand(actualCommand)
