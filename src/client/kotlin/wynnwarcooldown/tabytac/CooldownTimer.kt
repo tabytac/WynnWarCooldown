@@ -34,6 +34,7 @@ object CooldownTimer {
 
     fun getVisibleTimers(): List<Pair<String, Long>> {
         val now = System.currentTimeMillis()
+        val nowSeconds = now / 1000L
         val memoryMs = ModConfig.expiredTimerMemorySeconds * 1000L
 
         // Clean up old expired timers
@@ -43,7 +44,8 @@ object CooldownTimer {
 
         // Return active timers with remaining seconds
         val activeList = activeTimers.map { (name, timer) ->
-            val remaining = ((timer.endTime - now) / 1000).coerceAtLeast(0)
+            val endSeconds = (timer.endTime + 999L) / 1000L
+            val remaining = (endSeconds - nowSeconds).coerceAtLeast(0)
             name to remaining
         }
 
