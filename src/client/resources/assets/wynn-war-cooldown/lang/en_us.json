@@ -12,7 +12,7 @@
   "wynn-war-cooldown.config.hud_scale.tooltip": "Scale the timer size (0.1 = smaller, 5.0 = larger)",
   "wynn-war-cooldown.config.timer": "Timer",
   "wynn-war-cooldown.config.offset": "Timer Offset (seconds)",
-  "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = later, Negative = earlier",
+  "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = later, Negative = earlier. Default set to 1 second to account for any server lag.",
   "wynn-war-cooldown.config.command_offset": "Command Execution Offset (seconds)",
   "wynn-war-cooldown.config.command_offset.tooltip": "When to execute command relative to timer end. Positive = after, Negative = before",
   "wynn-war-cooldown.config.sound_offset": "Sound Play Offset (seconds)",

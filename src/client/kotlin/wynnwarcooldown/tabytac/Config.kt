@@ -21,7 +21,7 @@ enum class SoundType(val displayName: String, val soundId: String) {
 
 object ModConfig {
     var isModEnabled = true
-    var timerOffsetSeconds = 0
+    var timerOffsetSeconds = 1
     var commandExecutionOffsetSeconds = 0
     var soundPlayOffsetSeconds = 0
     var customCommand = "/gu attack"
