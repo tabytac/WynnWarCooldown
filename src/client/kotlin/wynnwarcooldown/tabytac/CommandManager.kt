@@ -17,6 +17,7 @@ object CommandManager {
             val rootCommand = ClientCommandManager.literal("wynnwarcooldown")
                 .then(buildTestSoundCommand())
                 .then(buildRemoveCommand())
+                .then(buildAddCommand())
                 .then(buildCooldownListCommand())
                 .then(buildClearExpiredCommand())
                 .then(buildShowCommand())
@@ -30,6 +31,7 @@ object CommandManager {
                 ClientCommandManager.literal("wwc")
                     .then(buildTestSoundCommand())
                     .then(buildRemoveCommand())
+                    .then(buildAddCommand())
                     .then(buildCooldownListCommand())
                     .then(buildClearExpiredCommand())
                     .then(buildShowCommand())
@@ -90,6 +92,38 @@ object CommandManager {
                 0
             }
 
+    private fun buildAddCommand() =
+        ClientCommandManager.literal("add")
+            .then(
+                ClientCommandManager.argument("territory", StringArgumentType.greedyString())
+                    .suggests(getAllTerritoriesAsSuggestions())
+                    .executes { context ->
+                        val territoryName = StringArgumentType.getString(context, "territory")
+                        val profile = TerritoryResolver.getTerritoryProfile(territoryName)
+
+                        if (profile == null) {
+                            sendErrorMessage("Territory not found: $territoryName")
+                            return@executes 0
+                        }
+
+                        if (!profile.isOnCooldown) {
+                            sendErrorMessage("Territory is not on cooldown: $territoryName")
+                            return@executes 0
+                        }
+
+                        val remainingSeconds = (600L - (profile.timeHeldMillis / 1000L)).coerceAtLeast(0L)
+                        CooldownTimer.startCooldown(remainingSeconds, territoryName)
+
+                        val timeStr = CooldownTimer.formatTime(remainingSeconds)
+                        sendMessage("§aAdded cooldown for $territoryName: §f$timeStr")
+                        1
+                    }
+            )
+            .executes {
+                sendErrorMessage("§cUsage: /wwc add <territory>")
+                0
+            }
+
     private fun buildCooldownListCommand() =
         ClientCommandManager.literal("list")
             .executes {
@@ -125,10 +159,26 @@ object CommandManager {
 
     private fun getTerritoryAsSuggestions(): SuggestionProvider<FabricClientCommandSource> {
         return SuggestionProvider { context, builder ->
+            val remaining = builder.remainingLowerCase
             val territories = CooldownTimer.getActiveTerritories()
-            territories.forEach { territory ->
-                builder.suggest(territory)
-            }
+            territories
+                .filter { it.lowercase().startsWith(remaining) }
+                .forEach { territory ->
+                    builder.suggest(territory)
+                }
+            builder.buildFuture()
+        }
+    }
+
+    private fun getAllTerritoriesAsSuggestions(): SuggestionProvider<FabricClientCommandSource> {
+        return SuggestionProvider { context, builder ->
+            val remaining = builder.remainingLowerCase
+            val territories = TerritoryResolver.getAllTerritoryNames()
+            territories
+                .filter { it.lowercase().startsWith(remaining) }
+                .forEach { territory ->
+                    builder.suggest(territory)
+                }
             builder.buildFuture()
         }
     }
