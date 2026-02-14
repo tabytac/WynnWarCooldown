@@ -18,6 +18,8 @@
   "wynn-war-cooldown.config.format": "Time Format",
   "wynn-war-cooldown.config.expired_memory": "Expired Timer Memory (seconds)",
   "wynn-war-cooldown.config.expired_memory.tooltip": "How long to show timers after they expire. 0 = hide immediately, 60 = show for 1 minute",
+  "wynn-war-cooldown.config.remove_on_queue": "Remove Timer on Queue",
+  "wynn-war-cooldown.config.remove_on_queue.tooltip": "Remove timer when territory is queued (defense status appears in chat)",
   "wynn-war-cooldown.config.action": "Action",
   "wynn-war-cooldown.config.send_guild_attack": "Send /guild attack on timer end",
   "wynn-war-cooldown.config.send_guild_attack.tooltip": "When enabled, the mod will send /guild attack when a cooldown ends.",

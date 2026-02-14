@@ -6,8 +6,13 @@ import org.slf4j.LoggerFactory
 object ChatListener {
     private val LOGGER = LoggerFactory.getLogger("WWC")
     private const val COOLDOWN_PHRASE = "territory is in cooldown"
+    private const val DEFENSE_PHRASE = "defense is"
     private val MINUTES_PATTERN = Regex("(\\d+)\\s*minute[s]?", RegexOption.IGNORE_CASE)
     private val SECONDS_PATTERN = Regex("(\\d+)\\s*second[s]?", RegexOption.IGNORE_CASE)
+
+    // Pattern to extract territory name from defense status messages
+    // Expected format: <Territory Name> defense is Very Low/Low/Medium/High/Very High
+    private val DEFENSE_STATUS_PATTERN = Regex("^(.+?)\\s+defense is\\s+(?:Very Low|Low|Medium|High|Very High)", RegexOption.IGNORE_CASE)
 
     private val AMPERSAND_COLOR_CODE = Regex("(?i)&[0-9a-fk-or]")
     private val SECTION_COLOR_CODE = Regex("(?i)§[0-9a-fk-or]")
@@ -20,6 +25,20 @@ object ChatListener {
         if (!ModConfig.isModEnabled) return
 
         val messageText = normalizeChatMessage(message.string)
+
+        // Check for territory defense status (queue detection)
+        if (ModConfig.removeTimerOnQueue && messageText.contains(DEFENSE_PHRASE, ignoreCase = true)) {
+            val defenseMatch = DEFENSE_STATUS_PATTERN.find(messageText)
+            if (defenseMatch != null) {
+                val territoryName = defenseMatch.groupValues[1].trim()
+                if (CooldownTimer.removeCooldown(territoryName)) {
+                    LOGGER.info("Removed timer for {} due to defense status message (territory queued)", territoryName)
+                }
+                return
+            }
+        }
+
+        // Check for cooldown message
         if (!messageText.contains(COOLDOWN_PHRASE, ignoreCase = true)) return
 
         val minutes = MINUTES_PATTERN.find(messageText)?.groupValues?.get(1)?.toIntOrNull() ?: 0

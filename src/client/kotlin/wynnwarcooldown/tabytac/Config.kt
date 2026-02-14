@@ -33,6 +33,7 @@ object ModConfig {
     var textColorHex = "00FF00"
     var hudScale = 1.0f
     var expiredTimerMemorySeconds = 0
+    var removeTimerOnQueue = true
 
     private val configFile: File by lazy {
         val configDir = FabricLoader.getInstance().configDir.toFile()
@@ -70,7 +71,8 @@ object ModConfig {
         val showBackgroundBox: Boolean = true,
         val textColorHex: String = "00FF00",
         val hudScale: Float = 1.0f,
-        val expiredTimerMemorySeconds: Int = 0
+        val expiredTimerMemorySeconds: Int = 0,
+        val removeTimerOnQueue: Boolean = true
     )
 
     fun load() {
@@ -94,6 +96,7 @@ object ModConfig {
             textColorHex = data.textColorHex
             hudScale = data.hudScale
             expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
+            removeTimerOnQueue = data.removeTimerOnQueue
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -114,7 +117,8 @@ object ModConfig {
                 showBackgroundBox = showBackgroundBox,
                 textColorHex = textColorHex,
                 hudScale = hudScale,
-                expiredTimerMemorySeconds = expiredTimerMemorySeconds
+                expiredTimerMemorySeconds = expiredTimerMemorySeconds,
+                removeTimerOnQueue = removeTimerOnQueue
             )
             configFile.writeText(gson.toJson(data))
         } catch (e: Exception) {
@@ -238,6 +242,17 @@ object ModConfig {
                 .setDefaultValue(0)
                 .setSaveConsumer { expiredTimerMemorySeconds = it }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.expired_memory.tooltip"))
+                .build()
+        )
+
+        timer.addEntry(
+            entryBuilder.startBooleanToggle(
+                Text.translatable("wynn-war-cooldown.config.remove_on_queue"),
+                removeTimerOnQueue
+            )
+                .setDefaultValue(true)
+                .setSaveConsumer { removeTimerOnQueue = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.remove_on_queue.tooltip"))
                 .build()
         )
     }
