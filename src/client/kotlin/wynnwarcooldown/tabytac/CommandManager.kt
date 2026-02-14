@@ -96,11 +96,18 @@ object CommandManager {
                 ClientCommandManager.argument("territory", StringArgumentType.greedyString())
                     .suggests(getTerritoriesOnCooldownAsSuggestions())
                     .executes { context ->
-                        val territoryName = StringArgumentType.getString(context, "territory")
+                        val inputName = StringArgumentType.getString(context, "territory")
+                        val territoryName = findTerritoryName(inputName)
+
+                        if (territoryName == null) {
+                            sendErrorMessage("Territory not found: $inputName")
+                            return@executes 0
+                        }
+
                         val profile = TerritoryResolver.getTerritoryProfile(territoryName)
 
                         if (profile == null) {
-                            sendErrorMessage("Territory not found: $territoryName")
+                            sendErrorMessage("Territory not found: $inputName")
                             return@executes 0
                         }
 
@@ -158,6 +165,12 @@ object CommandManager {
                 }
             builder.buildFuture()
         }
+    }
+
+    private fun findTerritoryName(input: String): String? {
+        val inputLower = input.lowercase()
+        val allTerritories = TerritoryResolver.getAllTerritoryNames()
+        return allTerritories.firstOrNull { it.lowercase() == inputLower }
     }
 
     private fun getTerritoriesOnCooldownAsSuggestions(): SuggestionProvider<FabricClientCommandSource> {
