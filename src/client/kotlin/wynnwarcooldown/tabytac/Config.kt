@@ -30,7 +30,8 @@ object ModConfig {
     var soundVolume = 1.0f
     var selectedSound = SoundType.WAR_HORN
     var showBackgroundBox = true
-    var textColorHex = "00FF00"
+    var textColorHex = "FF5522"
+    var expiredTextColorHex = "22FF55"
     var hudScale = 1.0f
     var expiredTimerMemorySeconds = 0
     var removeTimerOnQueue = true
@@ -69,7 +70,8 @@ object ModConfig {
         val soundVolume: Float = 1.0f,
         val selectedSound: String = "WAR_HORN",
         val showBackgroundBox: Boolean = true,
-        val textColorHex: String = "00FF00",
+        val textColorHex: String = "FF5522",
+        val expiredTextColorHex: String = "22FF55",
         val hudScale: Float = 1.0f,
         val expiredTimerMemorySeconds: Int = 0,
         val removeTimerOnQueue: Boolean = true
@@ -94,6 +96,7 @@ object ModConfig {
             selectedSound = SoundType.valueOf(data.selectedSound)
             showBackgroundBox = data.showBackgroundBox
             textColorHex = data.textColorHex
+            expiredTextColorHex = data.expiredTextColorHex
             hudScale = data.hudScale
             expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
             removeTimerOnQueue = data.removeTimerOnQueue
@@ -116,6 +119,7 @@ object ModConfig {
                 selectedSound = selectedSound.name,
                 showBackgroundBox = showBackgroundBox,
                 textColorHex = textColorHex,
+                expiredTextColorHex = expiredTextColorHex,
                 hudScale = hudScale,
                 expiredTimerMemorySeconds = expiredTimerMemorySeconds,
                 removeTimerOnQueue = removeTimerOnQueue
@@ -291,6 +295,18 @@ object ModConfig {
                     textColorHex = colorToHex(it)
                 }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.text_color.tooltip"))
+                .build()
+        )
+
+        action.addEntry(
+            entryBuilder.startColorField(
+                Text.translatable("wynn-war-cooldown.config.expired_text_color"),
+                parseHexToColor(expiredTextColorHex)
+            )
+                .setSaveConsumer {
+                    expiredTextColorHex = colorToHex(it)
+                }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.expired_text_color.tooltip"))
                 .build()
         )
 

@@ -27,8 +27,13 @@ object CooldownHUD {
             val formattedTime = CooldownTimer.formatTime(remaining)
             val label = "$territoryName: $formattedTime"
             val yOffset = (index * (client.textRenderer.fontHeight + LINE_SPACING) * scale).roundToInt()
+            val textColorHex = if (remaining == 0L) {
+                ModConfig.expiredTextColorHex
+            } else {
+                ModConfig.textColorHex
+            }
 
-            renderTimerLine(drawContext, client, label, yOffset, scale)
+            renderTimerLine(drawContext, client, label, yOffset, scale, textColorHex)
         }
     }
 
@@ -37,7 +42,8 @@ object CooldownHUD {
         client: MinecraftClient,
         label: String,
         yOffset: Int,
-        scale: Float
+        scale: Float,
+        textColorHex: String
     ) {
         val screenWidth = client.window.scaledWidth
         val screenHeight = client.window.scaledHeight
@@ -60,7 +66,7 @@ object CooldownHUD {
         }
 
         // Draw text with shadow
-        val textColor = parseHexColor(ModConfig.textColorHex)
+        val textColor = parseHexColor(textColorHex)
         drawContext.matrices.push()
         drawContext.matrices.translate(
             (x + (PADDING_X * scale)).toDouble(),
