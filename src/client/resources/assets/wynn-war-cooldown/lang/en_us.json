@@ -25,5 +25,7 @@
   "wynn-war-cooldown.config.sound_type": "Sound Effect",
   "wynn-war-cooldown.config.sound_type.tooltip": "Choose which sound to play when the timer ends",
   "wynn-war-cooldown.config.text_color": "Text Color",
-  "wynn-war-cooldown.config.text_color.tooltip": "Choose the color for the timer text"
+  "wynn-war-cooldown.config.text_color.tooltip": "Choose the color for the timer text",
+  "category.wynn-war-cooldown": "Wynn War Cooldown",
+  "key.wynn-war-cooldown.toggle_hud": "Toggle Timer HUD"
 }
