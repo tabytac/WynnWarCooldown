@@ -94,7 +94,7 @@ object CommandManager {
         ClientCommandManager.literal("add")
             .then(
                 ClientCommandManager.argument("territory", StringArgumentType.greedyString())
-                    .suggests(getAllTerritoriesAsSuggestions())
+                    .suggests(getTerritoriesOnCooldownAsSuggestions())
                     .executes { context ->
                         val territoryName = StringArgumentType.getString(context, "territory")
                         val profile = TerritoryResolver.getTerritoryProfile(territoryName)
@@ -153,6 +153,22 @@ object CommandManager {
             val territories = CooldownTimer.getActiveTerritories()
             territories
                 .filter { it.lowercase().startsWith(remaining) }
+                .forEach { territory ->
+                    builder.suggest(territory)
+                }
+            builder.buildFuture()
+        }
+    }
+
+    private fun getTerritoriesOnCooldownAsSuggestions(): SuggestionProvider<FabricClientCommandSource> {
+        return SuggestionProvider { context, builder ->
+            val remaining = builder.remainingLowerCase
+            val territories = TerritoryResolver.getAllTerritoryNames()
+            territories
+                .filter { territoryName ->
+                    val profile = TerritoryResolver.getTerritoryProfile(territoryName)
+                    profile?.isOnCooldown == true && territoryName.lowercase().startsWith(remaining)
+                }
                 .forEach { territory ->
                     builder.suggest(territory)
                 }
