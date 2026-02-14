@@ -20,8 +20,7 @@ object CommandManager {
                 .then(buildAddCommand())
                 .then(buildCooldownListCommand())
                 .then(buildClearExpiredCommand())
-                .then(buildShowCommand())
-                .then(buildHideCommand())
+                .then(buildToggleCommand())
 
             // Main command: /wynnwarcooldown
             dispatcher.register(rootCommand)
@@ -34,8 +33,7 @@ object CommandManager {
                     .then(buildAddCommand())
                     .then(buildCooldownListCommand())
                     .then(buildClearExpiredCommand())
-                    .then(buildShowCommand())
-                    .then(buildHideCommand())
+                    .then(buildToggleCommand())
             )
         }
     }
@@ -139,21 +137,13 @@ object CommandManager {
                 1
             }
 
-    private fun buildShowCommand() =
-        ClientCommandManager.literal("show")
+    private fun buildToggleCommand() =
+        ClientCommandManager.literal("toggle")
             .executes {
-                ModConfig.showTimerHud = true
+                ModConfig.showTimerHud = !ModConfig.showTimerHud
                 ModConfig.save()
-                sendMessage("§aTimer HUD is now visible")
-                1
-            }
-
-    private fun buildHideCommand() =
-        ClientCommandManager.literal("hide")
-            .executes {
-                ModConfig.showTimerHud = false
-                ModConfig.save()
-                sendMessage("§aTimer HUD is now hidden")
+                val status = if (ModConfig.showTimerHud) "visible" else "hidden"
+                sendMessage("§aTimer HUD is now $status")
                 1
             }
 
