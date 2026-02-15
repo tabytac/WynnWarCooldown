@@ -102,14 +102,14 @@ object CooldownTimer {
     }
 
     fun removeCooldown(territoryName: String): Boolean {
-        return if (activeTimers.containsKey(territoryName)) {
-            activeTimers.remove(territoryName)
-            expiredTimers.remove(territoryName)
+        val removedFromActive = activeTimers.remove(territoryName) != null
+        val removedFromExpired = expiredTimers.remove(territoryName) != null
+        val removed = removedFromActive || removedFromExpired
+        
+        if (removed) {
             LOGGER.info("Removed cooldown for: {}", territoryName)
-            true
-        } else {
-            false
         }
+        return removed
     }
 
     fun clearAllTimers() {
