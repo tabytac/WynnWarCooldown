@@ -25,15 +25,15 @@ object ModConfig {
     var soundPlayOffsetSeconds = 0
     var sendGuildAttackAtEnd = true
     var showTimerHud = true
-    var hudXPercent = 0.5f
-    var hudYPercent = 0.85f
+    var hudXPercent = 0.2f
+    var hudYPercent = 0.4f
     var soundVolume = 1.0f
     var selectedSound = SoundType.WAR_HORN
-    var showBackgroundBox = true
+    var showBackgroundBox = false
     var textColorHex = "FF5522"
     var expiredTextColorHex = "22FF55"
     var hudScale = 1.0f
-    var expiredTimerMemorySeconds = 0
+    var expiredTimerMemorySeconds = 30
     var removeTimerOnQueue = true
 
     private val configFile: File by lazy {
@@ -65,15 +65,15 @@ object ModConfig {
         val soundPlayOffsetSeconds: Int = 0,
         val sendGuildAttackAtEnd: Boolean = true,
         val showTimerHud: Boolean = true,
-        val hudXPercent: Float = 0.5f,
-        val hudYPercent: Float = 0.85f,
+        val hudXPercent: Float = 0.2f,
+        val hudYPercent: Float = 0.4f,
         val soundVolume: Float = 1.0f,
         val selectedSound: String = "WAR_HORN",
-        val showBackgroundBox: Boolean = true,
+        val showBackgroundBox: Boolean = false,
         val textColorHex: String = "FF5522",
         val expiredTextColorHex: String = "22FF55",
         val hudScale: Float = 1.0f,
-        val expiredTimerMemorySeconds: Int = 0,
+        val expiredTimerMemorySeconds: Int = 30,
         val removeTimerOnQueue: Boolean = true
     )
 
