@@ -10,9 +10,8 @@ object ChatListener {
     private val MINUTES_PATTERN = Regex("(\\d+)\\s*minute[s]?", RegexOption.IGNORE_CASE)
     private val SECONDS_PATTERN = Regex("(\\d+)\\s*second[s]?", RegexOption.IGNORE_CASE)
 
-    // Pattern to extract territory name from defense status messages
-    // Expected format: <Territory Name> defense is Very Low/Low/Medium/High/Very High
-    private val DEFENSE_STATUS_PATTERN = Regex("^(.+?)\\s+defense is\\s+(?:Very Low|Low|Medium|High|Very High)", RegexOption.IGNORE_CASE)
+    // Pattern to extract territory name from server war start message, e.g. "The war for Entamis Village will start in 3 minutes."
+    private val WAR_START_PATTERN = Regex("the war for\\s+(.+?)\\s+will start in\\s+\\d+\\s*minute[s]?", RegexOption.IGNORE_CASE)
 
     private val AMPERSAND_COLOR_CODE = Regex("(?i)&[0-9a-fk-or]")
     private val SECTION_COLOR_CODE = Regex("(?i)§[0-9a-fk-or]")
@@ -26,13 +25,19 @@ object ChatListener {
 
         val messageText = normalizeChatMessage(message.string)
 
-        // Check for territory defense status (queue detection)
-        if (ModConfig.removeTimerOnQueue && messageText.contains(DEFENSE_PHRASE, ignoreCase = true)) {
-            val defenseMatch = DEFENSE_STATUS_PATTERN.find(messageText)
-            if (defenseMatch != null) {
-                val territoryName = defenseMatch.groupValues[1].trim()
-                if (CooldownTimer.removeCooldown(territoryName)) {
-                    LOGGER.info("Removed timer for {} due to defense status message (territory queued)", territoryName)
+        // Check for server 'war start' message (preferred) e.g. "The war for Entamis Village will start in 3 minutes."
+        if (ModConfig.removeTimerOnQueue) {
+            val warMatch = WAR_START_PATTERN.find(messageText)
+            if (warMatch != null) {
+                val rawName = warMatch.groupValues[1].trim()
+                val canonical = TerritoryResolver.getAllTerritoryNames().firstOrNull { it.equals(rawName, ignoreCase = true) }
+                    ?: TerritoryResolver.getAllTerritoryNames().firstOrNull { it.contains(rawName, ignoreCase = true) }
+
+                val nameToRemove = canonical ?: rawName
+                if (CooldownTimer.removeCooldown(nameToRemove)) {
+                    LOGGER.info("Removed timer for {} due to server war-start message", nameToRemove)
+                } else {
+                    LOGGER.info("Server war-start message detected for {}, but no timer was found to remove", nameToRemove)
                 }
                 return
             }
