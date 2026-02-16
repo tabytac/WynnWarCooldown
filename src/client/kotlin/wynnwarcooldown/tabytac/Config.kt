@@ -19,6 +19,12 @@ enum class SoundType(val displayName: String, val soundId: String) {
     override fun toString(): String = displayName
 }
 
+enum class HudAlignment {
+    LEFT,
+    CENTER,
+    RIGHT
+}
+
 object ModConfig {
     var isModEnabled = true
     var timerOffsetSeconds = 1
@@ -27,11 +33,13 @@ object ModConfig {
     var showTimerHud = true
     var hudXPercent = 0.2f
     var hudYPercent = 0.4f
+    var hudAlignment: HudAlignment = HudAlignment.CENTER
     var soundVolume = 1.0f
     var selectedSound = SoundType.WAR_HORN
     var showBackgroundBox = false
     var textColorHex = "FF5522"
     var expiredTextColorHex = "22FF55"
+    var currentTextColorHex = "FF9900"
     var hudScale = 1.0f
     var expiredTimerMemorySeconds = 30
     var removeTimerOnQueue = true
@@ -67,11 +75,13 @@ object ModConfig {
         val showTimerHud: Boolean = true,
         val hudXPercent: Float = 0.2f,
         val hudYPercent: Float = 0.4f,
+        val hudAlignment: String = "CENTER",
         val soundVolume: Float = 1.0f,
         val selectedSound: String = "WAR_HORN",
         val showBackgroundBox: Boolean = false,
         val textColorHex: String = "FF5522",
         val expiredTextColorHex: String = "22FF55",
+        val currentTextColorHex: String = "FF9900",
         val hudScale: Float = 1.0f,
         val expiredTimerMemorySeconds: Int = 30,
         val removeTimerOnQueue: Boolean = true
@@ -91,12 +101,14 @@ object ModConfig {
             sendGuildAttackAtEnd = data.sendGuildAttackAtEnd
             showTimerHud = data.showTimerHud
             hudXPercent = data.hudXPercent
+            try { hudAlignment = HudAlignment.valueOf(data.hudAlignment) } catch (_: Exception) { hudAlignment = HudAlignment.CENTER }
             hudYPercent = data.hudYPercent
             soundVolume = data.soundVolume
             selectedSound = SoundType.valueOf(data.selectedSound)
             showBackgroundBox = data.showBackgroundBox
             textColorHex = data.textColorHex
             expiredTextColorHex = data.expiredTextColorHex
+            currentTextColorHex = data.currentTextColorHex
             hudScale = data.hudScale
             expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
             removeTimerOnQueue = data.removeTimerOnQueue
@@ -120,9 +132,11 @@ object ModConfig {
                 showBackgroundBox = showBackgroundBox,
                 textColorHex = textColorHex,
                 expiredTextColorHex = expiredTextColorHex,
+                currentTextColorHex = currentTextColorHex,
                 hudScale = hudScale,
                 expiredTimerMemorySeconds = expiredTimerMemorySeconds,
                 removeTimerOnQueue = removeTimerOnQueue
+                , hudAlignment = hudAlignment.name
             )
             configFile.writeText(gson.toJson(data))
         } catch (e: Exception) {
@@ -203,6 +217,18 @@ object ModConfig {
                 .setMax(HUD_SCALE_MAX)
                 .setSaveConsumer { hudScale = it }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.hud_scale.tooltip"))
+                .build()
+        )
+
+        general.addEntry(
+            entryBuilder.startSelector(
+                Text.translatable("wynn-war-cooldown.config.hud_alignment"),
+                HudAlignment.values(),
+                hudAlignment
+            )
+                .setDefaultValue(HudAlignment.CENTER)
+                .setSaveConsumer { hudAlignment = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.hud_alignment.tooltip"))
                 .build()
         )
     }
@@ -307,6 +333,18 @@ object ModConfig {
                     expiredTextColorHex = colorToHex(it)
                 }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.expired_text_color.tooltip"))
+                .build()
+        )
+
+        action.addEntry(
+            entryBuilder.startColorField(
+                Text.translatable("wynn-war-cooldown.config.current_text_color"),
+                parseHexToColor(currentTextColorHex)
+            )
+                .setSaveConsumer {
+                    currentTextColorHex = colorToHex(it)
+                }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.current_text_color.tooltip"))
                 .build()
         )
 

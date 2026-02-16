@@ -2,6 +2,8 @@ package wynnwarcooldown.tabytac
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.text.Text
+import net.minecraft.util.Formatting
 import kotlin.math.roundToInt
 
 object CooldownHUD {
@@ -23,17 +25,12 @@ object CooldownHUD {
         val client = MinecraftClient.getInstance()
         val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
 
+        val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
         visibleTimers.forEachIndexed { index, (territoryName, remaining) ->
             val formattedTime = CooldownTimer.formatTime(remaining)
             val label = "$territoryName: $formattedTime"
             val yOffset = (index * (client.textRenderer.fontHeight + LINE_SPACING) * scale).roundToInt()
-            val textColorHex = if (remaining == 0L) {
-                ModConfig.expiredTextColorHex
-            } else {
-                ModConfig.textColorHex
-            }
-
-            renderTimerLine(drawContext, client, label, yOffset, scale, textColorHex)
+            renderTimerLine(drawContext, client, label, yOffset, scale, territoryName, currentTerritory, remaining)
         }
     }
 
@@ -43,7 +40,9 @@ object CooldownHUD {
         label: String,
         yOffset: Int,
         scale: Float,
-        textColorHex: String
+        territoryName: String,
+        currentTerritory: String?,
+        remaining: Long
     ) {
         val screenWidth = client.window.scaledWidth
         val screenHeight = client.window.scaledHeight
@@ -53,7 +52,11 @@ object CooldownHUD {
         val boxWidth = ((textWidth + (PADDING_X * 2)) * scale).roundToInt()
         val boxHeight = ((textHeight + (PADDING_Y * 2)) * scale).roundToInt()
 
-        val rawX = (screenWidth * ModConfig.hudXPercent) - (boxWidth / 2f)
+        val rawX = when (ModConfig.hudAlignment) {
+            HudAlignment.CENTER -> (screenWidth / 2f) - (boxWidth / 2f)
+            HudAlignment.LEFT -> (screenWidth * ModConfig.hudXPercent)
+            HudAlignment.RIGHT -> (screenWidth * (1f - ModConfig.hudXPercent)) - boxWidth
+        }
         val baseY = screenHeight * ModConfig.hudYPercent
         val rawY = baseY + yOffset - (boxHeight / 2f)
 
@@ -65,8 +68,14 @@ object CooldownHUD {
             drawContext.fill(x, y, x + boxWidth, y + boxHeight, BACKGROUND_COLOR)
         }
 
-        // Draw text with shadow
-        val textColor = parseHexColor(textColorHex)
+        // Determine color: current override, expired, or default
+        val finalHex = when {
+            currentTerritory != null && territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
+            remaining == 0L -> ModConfig.expiredTextColorHex
+            else -> ModConfig.textColorHex
+        }
+
+        val textColor = parseHexColor(finalHex)
         drawContext.matrices.push()
         drawContext.matrices.translate(
             (x + (PADDING_X * scale)).toDouble(),
@@ -74,9 +83,16 @@ object CooldownHUD {
             0.0
         )
         drawContext.matrices.scale(scale, scale, 1.0f)
+        val isCurrent = currentTerritory != null && territoryName.equals(currentTerritory, ignoreCase = true)
+        val textComponent: Text = if (isCurrent) {
+            Text.literal(label).formatted(Formatting.BOLD)
+        } else {
+            Text.literal(label)
+        }
+
         drawContext.drawTextWithShadow(
             client.textRenderer,
-            label,
+            textComponent,
             0,
             0,
             textColor

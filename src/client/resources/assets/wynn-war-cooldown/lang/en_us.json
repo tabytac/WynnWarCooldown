@@ -10,6 +10,11 @@
   "wynn-war-cooldown.config.hud_y.tooltip": "0 = top, 0.85 = just above hotbar, 1 = bottom",
   "wynn-war-cooldown.config.hud_scale": "HUD Scale",
   "wynn-war-cooldown.config.hud_scale.tooltip": "Scale the timer size (0.1 = smaller, 5.0 = larger)",
+  "wynn-war-cooldown.config.hud_alignment": "HUD Alignment",
+  "wynn-war-cooldown.config.hud_alignment.tooltip": "Choose HUD alignment: Left, Center or Right",
+  "wynn-war-cooldown.hud_alignment.left": "Left",
+  "wynn-war-cooldown.hud_alignment.center": "Center",
+  "wynn-war-cooldown.hud_alignment.right": "Right",
   "wynn-war-cooldown.config.timer": "Timer",
   "wynn-war-cooldown.config.offset": "Timer Offset (seconds)",
   "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = later, Negative = earlier. Default set to 1 second to account for any server lag.",
@@ -30,6 +35,8 @@
   "wynn-war-cooldown.config.text_color.tooltip": "Choose the color for the timer text",
   "wynn-war-cooldown.config.expired_text_color": "Expired Text Color",
   "wynn-war-cooldown.config.expired_text_color.tooltip": "Choose the color for timers that finished their cooldown",
+  "wynn-war-cooldown.config.current_text_color": "Current Territory Text Color",
+  "wynn-war-cooldown.config.current_text_color.tooltip": "Color for the HUD entry when you are inside that territory (hex)",
   "category.wynn-war-cooldown": "Wynn War Cooldown",
   "key.wynn-war-cooldown.toggle_hud": "Toggle Timer HUD"
 }
