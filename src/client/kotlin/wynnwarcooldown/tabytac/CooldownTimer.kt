@@ -105,7 +105,7 @@ object CooldownTimer {
         val removedFromActive = activeTimers.remove(territoryName) != null
         val removedFromExpired = expiredTimers.remove(territoryName) != null
         val removed = removedFromActive || removedFromExpired
-        
+
         if (removed) {
             LOGGER.info("Removed cooldown for: {}", territoryName)
         }
@@ -134,7 +134,12 @@ object CooldownTimer {
 
         val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
 
-        if (currentTerritory != null && currentTerritory != territoryName) {
+        if (currentTerritory == null) {
+            LOGGER.info("Player is not currently in any territory, skipping command execution for {}", territoryName)
+            return
+        }
+
+        if (currentTerritory != territoryName) {
             LOGGER.info("Skipping command for {} - player not in territory (currently in: {})",
                 territoryName, currentTerritory)
             return
@@ -144,6 +149,7 @@ object CooldownTimer {
         val player = client.player ?: return
         val actualCommand = GUILD_ATTACK_COMMAND
 
+        LOGGER.info("Player is currently in territory: {}", currentTerritory)
         LOGGER.info("Executing command for {}: {}", territoryName, actualCommand)
         player.networkHandler?.sendCommand(actualCommand)
     }
