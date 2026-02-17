@@ -34,11 +34,13 @@ object WynnWarCooldownClient : ClientModInitializer {
 
 		// Register keybind handler
 		ClientTickEvents.END_CLIENT_TICK.register { client ->
-			while (toggleHudKeyBinding.wasPressed()) {
+				// Update timers on tick (moved off HUD render path)
+				CooldownTimer.updateTimers()
+				while (toggleHudKeyBinding.wasPressed()) {
 				ModConfig.showTimerHud = !ModConfig.showTimerHud
 				ModConfig.save()
 				val status = if (ModConfig.showTimerHud) "visible" else "hidden"
-				client.inGameHud?.chatHud?.addMessage(net.minecraft.text.Text.literal("§aTimer HUD is now $status"))
+				client.inGameHud?.chatHud?.addMessage(net.minecraft.text.Text.translatable("wynn-war-cooldown.chat.timer_hud_status", status))
 			}
 		}
 

@@ -18,7 +18,6 @@ object CooldownHUD {
     fun render(drawContext: DrawContext) {
         if (!ModConfig.isModEnabled || !ModConfig.showTimerHud) return
 
-        CooldownTimer.updateTimers()
         val visibleTimers = CooldownTimer.getVisibleTimers()
         if (visibleTimers.isEmpty()) return
 
@@ -26,11 +25,14 @@ object CooldownHUD {
         val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
 
         val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
-        visibleTimers.forEachIndexed { index, (territoryName, remaining) ->
-            val formattedTime = CooldownTimer.formatTime(remaining)
-            val label = "$territoryName: $formattedTime"
+        visibleTimers.forEachIndexed { index, timer ->
+            val label = when (timer.type) {
+                VisibleTimerType.CAPTURE -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"
+                VisibleTimerType.EXPIRED -> "${timer.territoryName}: Ready"
+                else -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"
+            }
             val yOffset = (index * (client.textRenderer.fontHeight + LINE_SPACING) * scale).roundToInt()
-            renderTimerLine(drawContext, client, label, yOffset, scale, territoryName, currentTerritory, remaining)
+            renderTimerLine(drawContext, client, label, yOffset, scale, timer, currentTerritory)
         }
     }
 
@@ -40,9 +42,8 @@ object CooldownHUD {
         label: String,
         yOffset: Int,
         scale: Float,
-        territoryName: String,
-        currentTerritory: String?,
-        remaining: Long
+        timer: VisibleTimer,
+        currentTerritory: String?
     ) {
         val screenWidth = client.window.scaledWidth
         val screenHeight = client.window.scaledHeight
@@ -68,10 +69,11 @@ object CooldownHUD {
             drawContext.fill(x, y, x + boxWidth, y + boxHeight, BACKGROUND_COLOR)
         }
 
-        // Determine color: current override, expired, or default
+        // Determine color: capture override, current override (only for non-capture), expired, or default
         val finalHex = when {
-            currentTerritory != null && territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
-            remaining == 0L -> ModConfig.expiredTextColorHex
+            timer.type == VisibleTimerType.CAPTURE -> ModConfig.captureTextColorHex
+            currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
+            timer.seconds == 0L && timer.type == VisibleTimerType.EXPIRED -> ModConfig.expiredTextColorHex
             else -> ModConfig.textColorHex
         }
 
@@ -83,7 +85,9 @@ object CooldownHUD {
             0.0
         )
         drawContext.matrices.scale(scale, scale, 1.0f)
-        val isCurrent = currentTerritory != null && territoryName.equals(currentTerritory, ignoreCase = true)
+
+        // Do not apply 'current territory' bold styling to capture reminders
+        val isCurrent = (timer.type != VisibleTimerType.CAPTURE) && (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))
         val textComponent: Text = if (isCurrent) {
             Text.literal(label).formatted(Formatting.BOLD)
         } else {

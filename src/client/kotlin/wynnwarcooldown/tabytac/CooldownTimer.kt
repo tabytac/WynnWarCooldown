@@ -1,6 +1,7 @@
 package wynnwarcooldown.tabytac
 
 import net.minecraft.client.MinecraftClient
+import net.minecraft.text.Text
 import org.slf4j.LoggerFactory
 
 data class TerritoryTimer(
@@ -15,11 +16,32 @@ data class ExpiredTimer(
     val expiredAt: Long
 )
 
+data class CaptureEvent(
+    val territoryName: String,
+    var captureTime: Long,
+    var announced: Boolean = false
+)
+
+enum class VisibleTimerType { ACTIVE, EXPIRED, CAPTURE }
+
+data class VisibleTimer(
+    val territoryName: String,
+    val seconds: Long,
+    val type: VisibleTimerType
+)
+
 object CooldownTimer {
     private val LOGGER = LoggerFactory.getLogger("WynnWarCooldown")
     private const val GUILD_ATTACK_COMMAND = "guild attack"
+    private const val DEFAULT_CAPTURE_COOLDOWN_SECONDS = 600L // assumed default for capture -> vulnerable
+
+    // Capture reminder window (fixed: 9:00 -> 10:30 after capture)
+    private const val CAPTURE_REMINDER_START_SECONDS = 540
+    private const val CAPTURE_REMINDER_END_SECONDS = 630
+
     private val activeTimers = mutableMapOf<String, TerritoryTimer>()
     private val expiredTimers = mutableMapOf<String, ExpiredTimer>()
+    private val captureEvents = mutableMapOf<String, CaptureEvent>()
 
     fun startCooldown(durationSeconds: Long, territoryName: String) {
         require(durationSeconds > 0) { "Cooldown duration must be positive" }
@@ -30,10 +52,32 @@ object CooldownTimer {
         val endTime = System.currentTimeMillis() + (durationSeconds * 1000)
         activeTimers[territoryName] = TerritoryTimer(territoryName, endTime, false, false)
 
+        // If we have a recorded capture event, align its captureTime to the server cooldown start
+        captureEvents[territoryName]?.let { event ->
+            try {
+                event.captureTime = endTime - (durationSeconds * 1000L)
+                LOGGER.info("Synchronized capture event for {} to server cooldown start (captureTime={})", territoryName, event.captureTime)
+            } catch (e: Exception) {
+                LOGGER.debug("Failed to sync capture event for {}: {}", territoryName, e.message)
+            }
+        }
+
         LOGGER.info("Cooldown timer started for {}: {}s, ends at {}", territoryName, durationSeconds, endTime)
     }
 
-    fun getVisibleTimers(): List<Pair<String, Long>> {
+    /**
+     * Called when the local player captures a territory. Records the capture time and (optionally)
+     * ensures an estimated cooldown exists so the HUD can display remaining time.
+     */
+    fun recordCapture(territoryName: String, captureTimeMillis: Long = System.currentTimeMillis()) {
+        // Only record the capture event — do NOT create a regular countdown timer.
+        // Capture reminders are shown as a COUNT-UP (time since capture) during the configured window.
+        captureEvents[territoryName] = CaptureEvent(territoryName, captureTimeMillis, false)
+
+        LOGGER.info("Recorded capture for {} — reminder window {}s..{}s", territoryName, CAPTURE_REMINDER_START_SECONDS, CAPTURE_REMINDER_END_SECONDS)
+    }
+
+    fun getVisibleTimers(): List<VisibleTimer> {
         val now = System.currentTimeMillis()
         val nowSeconds = now / 1000L
         val memoryMs = ModConfig.expiredTimerMemorySeconds * 1000L
@@ -43,22 +87,45 @@ object CooldownTimer {
             now - timer.expiredAt > memoryMs
         }
 
-        // Return active timers with remaining seconds
+        // Active timers -> remaining seconds
         val activeList = activeTimers.map { (name, timer) ->
             val endSeconds = (timer.endTime + 999L) / 1000L
             val remaining = (endSeconds - nowSeconds).coerceAtLeast(0)
-            name to remaining
+            VisibleTimer(name, remaining, VisibleTimerType.ACTIVE)
         }
 
-        // Add expired timers if memory is enabled
+        // Expired timers (memory)
         val expiredList = if (ModConfig.expiredTimerMemorySeconds > 0) {
-            expiredTimers.map { (name, _) -> name to 0L }
+            expiredTimers.map { (name, _) -> VisibleTimer(name, 0L, VisibleTimerType.EXPIRED) }
         } else {
             emptyList()
         }
 
-        // Sort by remaining time ascending (shortest on top), with active timers before expired
-        return (activeList + expiredList).sortedWith(compareBy<Pair<String, Long>> { it.second == 0L }.thenBy { it.second })
+        // Capture reminder timers (visible only inside configured window). These COUNT UP from capture time.
+        val captureList = if (ModConfig.enableCaptureReminder && ModConfig.captureReminderShowHud) {
+            captureEvents.values.mapNotNull { event ->
+                val windowStart = event.captureTime + (CAPTURE_REMINDER_START_SECONDS * 1000L)
+                val windowEnd = event.captureTime + (CAPTURE_REMINDER_END_SECONDS * 1000L)
+                if (now in windowStart..windowEnd) {
+                    val elapsed = ((now - event.captureTime) / 1000L).coerceAtLeast(0L)
+                    VisibleTimer(event.territoryName, elapsed, VisibleTimerType.CAPTURE)
+                } else null
+            }
+        } else emptyList()
+
+        // Merge: active + expired first, captures always at the bottom (user request)
+        val merged = linkedMapOf<String, VisibleTimer>()
+        (activeList + expiredList).forEach { if (!merged.containsKey(it.territoryName)) merged[it.territoryName] = it }
+        // finally append captures (do not overwrite existing active/expired entries)
+        captureList.forEach { if (!merged.containsKey(it.territoryName)) merged[it.territoryName] = it }
+
+        // Return list preserving order: active/expired first (sorted), captures last (sorted by elapsed)
+        val primary = merged.values.filter { it.type != VisibleTimerType.CAPTURE }
+            .sortedWith(compareBy<VisibleTimer> { it.seconds == 0L }.thenBy { it.seconds })
+        val captures = merged.values.filter { it.type == VisibleTimerType.CAPTURE }
+            .sortedBy { it.seconds }
+
+        return primary + captures
     }
 
     fun updateTimers() {
@@ -85,6 +152,18 @@ object CooldownTimer {
 
             // Move to expired if finished
             if (now >= removalTime) {
+                // Notify player that the territory is off cooldown
+                if (ModConfig.announceTimerOffCooldown) {
+                    try {
+                        val client = MinecraftClient.getInstance()
+                        client.inGameHud?.chatHud?.addMessage(
+                            Text.translatable("wynn-war-cooldown.chat.timer_off_cooldown", territoryName)
+                        )
+                    } catch (e: Exception) {
+                        LOGGER.debug("Failed to send off-cooldown chat for {}: {}", territoryName, e.message)
+                    }
+                }
+
                 timersToRemove.add(territoryName)
                 if (ModConfig.expiredTimerMemorySeconds > 0) {
                     expiredTimers[territoryName] = ExpiredTimer(territoryName, now)
@@ -93,6 +172,47 @@ object CooldownTimer {
         }
 
         timersToRemove.forEach { activeTimers.remove(it) }
+
+        // --- Capture reminder processing ---
+        if (ModConfig.enableCaptureReminder) {
+            val captureToRemove = mutableListOf<String>()
+
+            captureEvents.values.forEach { event ->
+                val windowStart = event.captureTime + (CAPTURE_REMINDER_START_SECONDS * 1000L)
+                val windowEnd = event.captureTime + (CAPTURE_REMINDER_END_SECONDS * 1000L)
+
+                // If now is inside the reminder window, trigger one-time announcement/sound
+                if (now in windowStart..windowEnd) {
+                    if (!event.announced) {
+                        event.announced = true
+
+                        // compute remaining until vulnerable (prefer active timer if present)
+                        val remaining = activeTimers[event.territoryName]?.let { timer ->
+                            ((timer.endTime - now) / 1000L).coerceAtLeast(0L)
+                        } ?: run {
+                            val elapsed = (now - event.captureTime) / 1000L
+                            (DEFAULT_CAPTURE_COOLDOWN_SECONDS - elapsed).coerceAtLeast(0L)
+                        }
+
+                        if (ModConfig.captureReminderPlaySound) SoundManager.playCooldownSound()
+
+                        if (ModConfig.captureReminderAnnounceChat) {
+                            val client = MinecraftClient.getInstance()
+                            client.inGameHud?.chatHud?.addMessage(
+                                Text.translatable("wynn-war-cooldown.chat.capture_reminder", event.territoryName, formatTime(remaining))
+                            )
+                        }
+                    }
+                }
+
+                // Remove capture event after its configured end time
+                if (now > windowEnd) {
+                    captureToRemove.add(event.territoryName)
+                }
+            }
+
+            captureToRemove.forEach { captureEvents.remove(it) }
+        }
     }
 
     fun hasActiveTimers(): Boolean = activeTimers.isNotEmpty()
@@ -104,10 +224,11 @@ object CooldownTimer {
     fun removeCooldown(territoryName: String): Boolean {
         val removedFromActive = activeTimers.remove(territoryName) != null
         val removedFromExpired = expiredTimers.remove(territoryName) != null
-        val removed = removedFromActive || removedFromExpired
+        val removedFromCapture = captureEvents.remove(territoryName) != null
+        val removed = removedFromActive || removedFromExpired || removedFromCapture
 
         if (removed) {
-            LOGGER.info("Removed cooldown for: {}", territoryName)
+            LOGGER.info("Removed cooldown/capture for: {}", territoryName)
         }
         return removed
     }
@@ -115,7 +236,8 @@ object CooldownTimer {
     fun clearAllTimers() {
         activeTimers.clear()
         expiredTimers.clear()
-        LOGGER.info("Cleared all timers")
+        captureEvents.clear()
+        LOGGER.info("Cleared all timers and capture events")
     }
 
     fun clearExpiredTimers() {

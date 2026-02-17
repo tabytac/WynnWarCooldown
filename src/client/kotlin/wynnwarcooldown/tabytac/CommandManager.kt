@@ -21,6 +21,7 @@ object CommandManager {
                 .then(buildCooldownListCommand())
                 .then(buildClearExpiredCommand())
                 .then(buildToggleCommand())
+                .then(buildTriggerCaptureCommand())
 
             // Main command: /wynnwarcooldown
             dispatcher.register(rootCommand)
@@ -34,6 +35,7 @@ object CommandManager {
                     .then(buildCooldownListCommand())
                     .then(buildClearExpiredCommand())
                     .then(buildToggleCommand())
+                    .then(buildTriggerCaptureCommand())
             )
         }
     }
@@ -48,17 +50,17 @@ object CommandManager {
                         val soundType = try {
                             SoundType.valueOf(soundTypeName.uppercase())
                         } catch (e: IllegalArgumentException) {
-                            sendErrorMessage("Unknown sound type: $soundTypeName")
+                            sendChat("wynn-war-cooldown.chat.unknown_sound_type", soundTypeName)
                             return@executes 0
                         }
                         SoundManager.playSound(soundType)
-                        sendMessage("Playing sound: $soundTypeName")
+                        sendChat("wynn-war-cooldown.chat.playing_sound", soundTypeName)
                         1
                     }
             )
             .executes {
                 SoundManager.playCooldownSound()
-                sendMessage("Playing default cooldown sound")
+                sendChat("wynn-war-cooldown.chat.playing_default_sound")
                 1
             }
 
@@ -68,7 +70,7 @@ object CommandManager {
                 ClientCommandManager.literal("all")
                     .executes {
                         CooldownTimer.clearAllTimers()
-                        sendMessage("§aCleared all cooldown timers")
+                        sendChat("wynn-war-cooldown.chat.cleared_all")
                         1
                     }
             )
@@ -76,17 +78,24 @@ object CommandManager {
                 ClientCommandManager.argument("territory", StringArgumentType.greedyString())
                     .suggests(getTerritoryAsSuggestions())
                     .executes { context ->
-                        val territoryName = StringArgumentType.getString(context, "territory")
+                        var input = StringArgumentType.getString(context, "territory").trim()
+
+                        // allow users to include accidental trailing numbers (strip them)
+                        val trailingSecondsMatch = Regex("(.*)\\s+(\\d+)").find(input)
+                        if (trailingSecondsMatch != null) input = trailingSecondsMatch.groupValues[1].trim()
+
+                        val territoryName = findTerritoryName(input) ?: input
+
                         if (CooldownTimer.removeCooldown(territoryName)) {
-                            sendMessage("§aRemoved cooldown for: $territoryName")
+                            sendChat("wynn-war-cooldown.chat.removed_cooldown", territoryName)
                         } else {
-                            sendErrorMessage("No cooldown found for: $territoryName")
+                            sendChat("wynn-war-cooldown.chat.no_cooldown_found", territoryName)
                         }
                         1
                     }
             )
             .executes {
-                sendErrorMessage("§cUsage: /wwc remove <territory|all>")
+                sendChat("wynn-war-cooldown.chat.usage_remove")
                 0
             }
 
@@ -100,19 +109,19 @@ object CommandManager {
                         val territoryName = findTerritoryName(inputName)
 
                         if (territoryName == null) {
-                            sendErrorMessage("Territory not found: $inputName")
+                            sendChat("wynn-war-cooldown.chat.territory_not_found", inputName)
                             return@executes 0
                         }
 
                         val profile = TerritoryResolver.getTerritoryProfile(territoryName)
 
                         if (profile == null) {
-                            sendErrorMessage("Territory not found: $inputName")
+                            sendChat("wynn-war-cooldown.chat.territory_not_found", inputName)
                             return@executes 0
                         }
 
                         if (!profile.isOnCooldown) {
-                            sendErrorMessage("Territory is not on cooldown: $territoryName")
+                            sendChat("wynn-war-cooldown.chat.not_on_cooldown", territoryName)
                             return@executes 0
                         }
 
@@ -120,12 +129,12 @@ object CommandManager {
                         CooldownTimer.startCooldown(remainingSeconds, territoryName)
 
                         val timeStr = CooldownTimer.formatTime(remainingSeconds)
-                        sendMessage("§aAdded cooldown for $territoryName: §f$timeStr")
+                        sendChat("wynn-war-cooldown.chat.added_cooldown", territoryName, timeStr)
                         1
                     }
             )
             .executes {
-                sendErrorMessage("§cUsage: /wwc add <territory>")
+                sendChat("wynn-war-cooldown.chat.usage_add")
                 0
             }
 
@@ -140,7 +149,7 @@ object CommandManager {
         ClientCommandManager.literal("clear-expired")
             .executes {
                 CooldownTimer.clearExpiredTimers()
-                sendMessage("§aCleared expired timers from memory")
+                sendChat("wynn-war-cooldown.chat.cleared_expired")
                 1
             }
 
@@ -150,8 +159,46 @@ object CommandManager {
                 ModConfig.showTimerHud = !ModConfig.showTimerHud
                 ModConfig.save()
                 val status = if (ModConfig.showTimerHud) "visible" else "hidden"
-                sendMessage("§aTimer HUD is now $status")
+                sendChat("wynn-war-cooldown.chat.timer_hud_status", status)
                 1
+            }
+
+    // TEMP: trigger a capture reminder for testing without actually warring
+    private fun buildTriggerCaptureCommand() =
+        ClientCommandManager.literal("trigger-capture")
+            .then(
+                ClientCommandManager.argument("territory", StringArgumentType.greedyString())
+                    .suggests(getAllTerritoriesAsSuggestions())
+                    .executes { context ->
+                        var input = StringArgumentType.getString(context, "territory").trim()
+
+                        // support trailing seconds (e.g. "Temple Island 535") by extracting trailing integer
+                        val trailingSecondsMatch = Regex("(.*)\\s+(\\d+)").find(input)
+                        val secondsAgo: Long? = if (trailingSecondsMatch != null) {
+                            input = trailingSecondsMatch.groupValues[1].trim()
+                            trailingSecondsMatch.groupValues[2].toLongOrNull()
+                        } else null
+
+                        val territoryName = findTerritoryName(input)
+                        if (territoryName == null) {
+                            sendChat("wynn-war-cooldown.chat.territory_not_found", input)
+                            return@executes 0
+                        }
+
+                        if (secondsAgo != null) {
+                            val captureTime = System.currentTimeMillis() - (secondsAgo * 1000L)
+                            CooldownTimer.recordCapture(territoryName, captureTime)
+                        } else {
+                            CooldownTimer.recordCapture(territoryName)
+                        }
+
+                        sendChat("wynn-war-cooldown.chat.triggered_capture", territoryName)
+                        1
+                    }
+            )
+            .executes {
+                sendChat("wynn-war-cooldown.chat.usage_trigger_capture")
+                0
             }
 
     private fun getTerritoryAsSuggestions(): SuggestionProvider<FabricClientCommandSource> {
@@ -211,26 +258,32 @@ object CommandManager {
         }
     }
 
+    private fun sendChat(key: String, vararg args: Any) {
+        val client = MinecraftClient.getInstance()
+        client.inGameHud?.chatHud?.addMessage(Text.translatable(key, *args))
+    }
+
     private fun displayCooldownList() {
         val timers = CooldownTimer.getVisibleTimers()
 
         if (timers.isEmpty()) {
-            sendMessage("§6No active cooldowns")
+            sendChat("wynn-war-cooldown.chat.no_active_cooldowns")
             return
         }
 
-        sendMessage("§6=== Active Cooldowns ===")
-        timers.forEach { (territory, remaining) ->
-            val timeStr = if (remaining > 0) {
-                CooldownTimer.formatTime(remaining)
-            } else {
-                "EXPIRED"
+        sendChat("wynn-war-cooldown.chat.active_cooldowns_header")
+        timers.forEach { timer ->
+            val timeStr = when (timer.type) {
+                VisibleTimerType.CAPTURE -> "CAPTURED ${CooldownTimer.formatTime(timer.seconds)}"
+                VisibleTimerType.EXPIRED -> "EXPIRED"
+                else -> CooldownTimer.formatTime(timer.seconds)
             }
-            sendMessage("§e$territory §7→ §f$timeStr")
+            sendChat("wynn-war-cooldown.chat.active_cooldown_line", timer.territoryName, timeStr)
         }
-        sendMessage("§6======================")
+        sendChat("wynn-war-cooldown.chat.active_cooldowns_footer")
     }
 
+    // Legacy helpers kept for compatibility (prefer `sendChat(key, ...)`)
     private fun sendMessage(message: String) {
         val client = MinecraftClient.getInstance()
         client.inGameHud?.chatHud?.addMessage(Text.literal(message))

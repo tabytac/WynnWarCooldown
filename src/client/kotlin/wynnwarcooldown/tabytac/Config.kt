@@ -40,9 +40,20 @@ object ModConfig {
     var textColorHex = "FF5522"
     var expiredTextColorHex = "22FF55"
     var currentTextColorHex = "FF9900"
+    var captureTextColorHex = "AA00FF" // default purple for capture reminders
     var hudScale = 1.0f
     var expiredTimerMemorySeconds = 30
     var removeTimerOnQueue = true
+
+    // announce when a regular (non-capture) timer finishes
+    var announceTimerOffCooldown = false
+
+    // Capture reminder (when *we* take a territory)
+    var enableCaptureReminder = true
+
+    var captureReminderShowHud = false
+    var captureReminderAnnounceChat = true
+    var captureReminderPlaySound = false
 
     private val configFile: File by lazy {
         val configDir = FabricLoader.getInstance().configDir.toFile()
@@ -67,6 +78,8 @@ object ModConfig {
     private const val EXPIRED_MEMORY_MIN = 0
     private const val EXPIRED_MEMORY_MAX = 60
 
+
+
     data class ConfigData(
         val isModEnabled: Boolean = true,
         val timerOffsetSeconds: Int = 0,
@@ -82,7 +95,13 @@ object ModConfig {
         val textColorHex: String = "FF5522",
         val expiredTextColorHex: String = "22FF55",
         val currentTextColorHex: String = "FF9900",
+        val captureTextColorHex: String = "AA00FF",
         val hudScale: Float = 1.0f,
+        val enableCaptureReminder: Boolean = true,
+        val captureReminderShowHud: Boolean = true,
+        val captureReminderAnnounceChat: Boolean = true,
+        val captureReminderPlaySound: Boolean = false,
+        val announceTimerOffCooldown: Boolean = false,
         val expiredTimerMemorySeconds: Int = 30,
         val removeTimerOnQueue: Boolean = true
     )
@@ -109,7 +128,13 @@ object ModConfig {
             textColorHex = data.textColorHex
             expiredTextColorHex = data.expiredTextColorHex
             currentTextColorHex = data.currentTextColorHex
+            captureTextColorHex = data.captureTextColorHex
             hudScale = data.hudScale
+            enableCaptureReminder = data.enableCaptureReminder
+            captureReminderShowHud = data.captureReminderShowHud
+            captureReminderAnnounceChat = data.captureReminderAnnounceChat
+            captureReminderPlaySound = data.captureReminderPlaySound
+            announceTimerOffCooldown = data.announceTimerOffCooldown
             expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
             removeTimerOnQueue = data.removeTimerOnQueue
         } catch (e: Exception) {
@@ -133,7 +158,13 @@ object ModConfig {
                 textColorHex = textColorHex,
                 expiredTextColorHex = expiredTextColorHex,
                 currentTextColorHex = currentTextColorHex,
+                captureTextColorHex = captureTextColorHex,
                 hudScale = hudScale,
+                enableCaptureReminder = enableCaptureReminder,
+                captureReminderShowHud = captureReminderShowHud,
+                captureReminderAnnounceChat = captureReminderAnnounceChat,
+                captureReminderPlaySound = captureReminderPlaySound,
+                announceTimerOffCooldown = announceTimerOffCooldown,
                 expiredTimerMemorySeconds = expiredTimerMemorySeconds,
                 removeTimerOnQueue = removeTimerOnQueue
                 , hudAlignment = hudAlignment.name
@@ -167,6 +198,7 @@ object ModConfig {
 
         buildGeneralCategory(builder, entryBuilder)
         buildTimerCategory(builder, entryBuilder)
+        buildCaptureCategory(builder, entryBuilder)
         buildActionCategory(builder, entryBuilder)
 
         return builder.build()
@@ -285,6 +317,17 @@ object ModConfig {
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.remove_on_queue.tooltip"))
                 .build()
         )
+
+        timer.addEntry(
+            entryBuilder.startBooleanToggle(
+                Text.translatable("wynn-war-cooldown.config.announce_off_cooldown"),
+                announceTimerOffCooldown
+            )
+                .setDefaultValue(false)
+                .setSaveConsumer { announceTimerOffCooldown = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.announce_off_cooldown.tooltip"))
+                .build()
+        )
     }
 
     private fun buildActionCategory(builder: ConfigBuilder, entryBuilder: ConfigEntryBuilder) {
@@ -353,6 +396,50 @@ object ModConfig {
                 .setMin(SOUND_VOLUME_MIN)
                 .setMax(SOUND_VOLUME_MAX)
                 .setSaveConsumer { soundVolume = it }
+                .build()
+        )
+    }
+
+    private fun buildCaptureCategory(builder: ConfigBuilder, entryBuilder: ConfigEntryBuilder) {
+        val capture = builder.getOrCreateCategory(Text.translatable("wynn-war-cooldown.config.capture"))
+
+        capture.addEntry(
+            entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_enable"), enableCaptureReminder)
+                .setSaveConsumer { enableCaptureReminder = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_enable.tooltip"))
+                .build()
+        )
+
+        capture.addEntry(
+            entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_hud"), captureReminderShowHud)
+                .setSaveConsumer { captureReminderShowHud = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_hud.tooltip"))
+                .build()
+        )
+
+        capture.addEntry(
+            entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_chat"), captureReminderAnnounceChat)
+                .setSaveConsumer { captureReminderAnnounceChat = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_chat.tooltip"))
+                .build()
+        )
+
+        capture.addEntry(
+            entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_sound"), captureReminderPlaySound)
+                .setSaveConsumer { captureReminderPlaySound = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_sound.tooltip"))
+                .build()
+        )
+
+        capture.addEntry(
+            entryBuilder.startColorField(
+                Text.translatable("wynn-war-cooldown.config.capture_color"),
+                parseHexToColor(captureTextColorHex)
+            )
+                .setSaveConsumer {
+                    captureTextColorHex = colorToHex(it)
+                }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_color.tooltip"))
                 .build()
         )
     }
