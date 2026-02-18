@@ -26,8 +26,8 @@ object CooldownHUD {
 
         val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
         visibleTimers.forEachIndexed { index, timer ->
-            val label = when (timer.type) {
-                VisibleTimerType.CAPTURE -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"
+        val label = when (timer.type) {
+                // VisibleTimerType.CAPTURE -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"  // commented out (Capture HUD disabled)
                 VisibleTimerType.EXPIRED -> "${timer.territoryName}: Ready"
                 else -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"
             }
@@ -71,7 +71,7 @@ object CooldownHUD {
 
         // Determine color: capture override, current override (only for non-capture), expired, or default
         val finalHex = when {
-            timer.type == VisibleTimerType.CAPTURE -> ModConfig.captureTextColorHex
+            // timer.type == VisibleTimerType.CAPTURE -> ModConfig.captureTextColorHex  // commented out (Capture HUD disabled)
             currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
             timer.seconds == 0L && timer.type == VisibleTimerType.EXPIRED -> ModConfig.expiredTextColorHex
             else -> ModConfig.textColorHex
@@ -86,8 +86,8 @@ object CooldownHUD {
         )
         drawContext.matrices.scale(scale, scale, 1.0f)
 
-        // Do not apply 'current territory' bold styling to capture reminders
-        val isCurrent = (timer.type != VisibleTimerType.CAPTURE) && (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))
+        // val isCurrent = (timer.type != VisibleTimerType.CAPTURE) && (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))  // commented out (Capture HUD disabled)
+        val isCurrent = (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))
         val textComponent: Text = if (isCurrent) {
             Text.literal(label).formatted(Formatting.BOLD)
         } else {

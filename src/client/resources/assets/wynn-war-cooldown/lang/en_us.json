@@ -42,14 +42,12 @@
   "wynn-war-cooldown.config.capture_enable": "Enable capture reminders",
   "wynn-war-cooldown.config.capture_enable.tooltip": "Show a reminder after your guild captures a territory",
 
-  "wynn-war-cooldown.config.capture_hud": "Show capture reminder in HUD",
-  "wynn-war-cooldown.config.capture_hud.tooltip": "Display the territory and remaining cooldown in the HUD between the configured window",
   "wynn-war-cooldown.config.capture_chat": "Announce capture reminder in chat",
   "wynn-war-cooldown.config.capture_chat.tooltip": "Post a local reminder message when the reminder window opens",
   "wynn-war-cooldown.config.capture_sound": "Play sound when reminder opens",
   "wynn-war-cooldown.config.capture_sound.tooltip": "Play the configured alert sound when the reminder window opens",
-  "wynn-war-cooldown.config.capture_color": "Capture Reminder Color",
-  "wynn-war-cooldown.config.capture_color.tooltip": "Color for capture reminder HUD entries (hex)",
+  "wynn-war-cooldown.config.capture_before_vulnerable": "Time before 10 min cooldown to send reminder (seconds)",
+  "wynn-war-cooldown.config.capture_before_vulnerable.tooltip": "Send the capture reminder when the 10-minute cooldown has this many seconds remaining (e.g. 30 = 0:30 remaining)",
   "wynn-war-cooldown.config.announce_off_cooldown": "Announce when a timer finishes",
   "wynn-war-cooldown.config.announce_off_cooldown.tooltip": "Send a chat message when a regular cooldown timer finishes",
 

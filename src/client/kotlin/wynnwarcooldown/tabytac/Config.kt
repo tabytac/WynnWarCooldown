@@ -40,7 +40,7 @@ object ModConfig {
     var textColorHex = "FF5522"
     var expiredTextColorHex = "22FF55"
     var currentTextColorHex = "FF9900"
-    var captureTextColorHex = "AA00FF" // default purple for capture reminders
+    // var captureTextColorHex = "AA00FF" // capture HUD color commented out (HUD disabled)
     var hudScale = 1.0f
     var expiredTimerMemorySeconds = 30
     var removeTimerOnQueue = true
@@ -51,9 +51,12 @@ object ModConfig {
     // Capture reminder (when *we* take a territory)
     var enableCaptureReminder = true
 
-    var captureReminderShowHud = false
+    // var captureReminderShowHud = false // HUD toggle commented out (capture HUD removed)
     var captureReminderAnnounceChat = true
     var captureReminderPlaySound = false
+
+    // Example: 30 = send reminder when 1:00 remains (i.e. at 9:30 elapsed)
+    var captureReminderBeforeSeconds = 30
 
     private val configFile: File by lazy {
         val configDir = FabricLoader.getInstance().configDir.toFile()
@@ -95,12 +98,13 @@ object ModConfig {
         val textColorHex: String = "FF5522",
         val expiredTextColorHex: String = "22FF55",
         val currentTextColorHex: String = "FF9900",
-        val captureTextColorHex: String = "AA00FF",
+        // val captureTextColorHex: String = "AA00FF", // removed (HUD disabled)
         val hudScale: Float = 1.0f,
         val enableCaptureReminder: Boolean = true,
-        val captureReminderShowHud: Boolean = true,
+        // val captureReminderShowHud: Boolean = false, // removed (HUD disabled)
         val captureReminderAnnounceChat: Boolean = true,
         val captureReminderPlaySound: Boolean = false,
+        val captureReminderBeforeSeconds: Int = 30,
         val announceTimerOffCooldown: Boolean = false,
         val expiredTimerMemorySeconds: Int = 30,
         val removeTimerOnQueue: Boolean = true
@@ -128,12 +132,13 @@ object ModConfig {
             textColorHex = data.textColorHex
             expiredTextColorHex = data.expiredTextColorHex
             currentTextColorHex = data.currentTextColorHex
-            captureTextColorHex = data.captureTextColorHex
+            // captureTextColorHex = data.captureTextColorHex // commented out (HUD disabled)
             hudScale = data.hudScale
             enableCaptureReminder = data.enableCaptureReminder
-            captureReminderShowHud = data.captureReminderShowHud
+            // captureReminderShowHud = data.captureReminderShowHud // commented out (HUD disabled)
             captureReminderAnnounceChat = data.captureReminderAnnounceChat
             captureReminderPlaySound = data.captureReminderPlaySound
+            captureReminderBeforeSeconds = data.captureReminderBeforeSeconds
             announceTimerOffCooldown = data.announceTimerOffCooldown
             expiredTimerMemorySeconds = data.expiredTimerMemorySeconds
             removeTimerOnQueue = data.removeTimerOnQueue
@@ -158,12 +163,13 @@ object ModConfig {
                 textColorHex = textColorHex,
                 expiredTextColorHex = expiredTextColorHex,
                 currentTextColorHex = currentTextColorHex,
-                captureTextColorHex = captureTextColorHex,
+                // captureTextColorHex = captureTextColorHex, // commented out (HUD disabled)
                 hudScale = hudScale,
                 enableCaptureReminder = enableCaptureReminder,
-                captureReminderShowHud = captureReminderShowHud,
+                // captureReminderShowHud = captureReminderShowHud, // commented out (HUD disabled)
                 captureReminderAnnounceChat = captureReminderAnnounceChat,
                 captureReminderPlaySound = captureReminderPlaySound,
+                captureReminderBeforeSeconds = captureReminderBeforeSeconds,
                 announceTimerOffCooldown = announceTimerOffCooldown,
                 expiredTimerMemorySeconds = expiredTimerMemorySeconds,
                 removeTimerOnQueue = removeTimerOnQueue
@@ -410,12 +416,12 @@ object ModConfig {
                 .build()
         )
 
-        capture.addEntry(
+        /*capture.addEntry(
             entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_hud"), captureReminderShowHud)
                 .setSaveConsumer { captureReminderShowHud = it }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_hud.tooltip"))
                 .build()
-        )
+        )*/  // commented out (HUD disabled)
 
         capture.addEntry(
             entryBuilder.startBooleanToggle(Text.translatable("wynn-war-cooldown.config.capture_chat"), captureReminderAnnounceChat)
@@ -432,6 +438,19 @@ object ModConfig {
         )
 
         capture.addEntry(
+            entryBuilder.startIntField(
+                Text.translatable("wynn-war-cooldown.config.capture_before_vulnerable"),
+                captureReminderBeforeSeconds
+            )
+                .setMin(0)
+                .setMax(600)
+                .setDefaultValue(30)
+                .setSaveConsumer { captureReminderBeforeSeconds = it }
+                .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_before_vulnerable.tooltip"))
+                .build()
+        )
+
+        /*capture.addEntry(
             entryBuilder.startColorField(
                 Text.translatable("wynn-war-cooldown.config.capture_color"),
                 parseHexToColor(captureTextColorHex)
@@ -441,6 +460,6 @@ object ModConfig {
                 }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.capture_color.tooltip"))
                 .build()
-        )
+        )*/
     }
 }

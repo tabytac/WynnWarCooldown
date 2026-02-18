@@ -35,9 +35,12 @@ object CooldownTimer {
     private const val GUILD_ATTACK_COMMAND = "guild attack"
     private const val DEFAULT_CAPTURE_COOLDOWN_SECONDS = 600L // assumed default for capture -> vulnerable
 
-    // Capture reminder window (fixed: 9:00 -> 10:30 after capture)
-    private const val CAPTURE_REMINDER_START_SECONDS = 540
-    private const val CAPTURE_REMINDER_END_SECONDS = 630
+    // private const val CAPTURE_REMINDER_START_SECONDS = 540  // commented out (Capture HUD disabled)
+    // private const val CAPTURE_REMINDER_END_SECONDS = 630  // commented out (Capture HUD disabled)
+
+    // NOTE: capture reminder *announcement* timing is now configurable via
+    // ModConfig.captureReminderBeforeSeconds (seconds before the default 600s cooldown).
+    // We still keep DEFAULT_CAPTURE_COOLDOWN_SECONDS (600s) and a small removal buffer.
 
     private val activeTimers = mutableMapOf<String, TerritoryTimer>()
     private val expiredTimers = mutableMapOf<String, ExpiredTimer>()
@@ -74,7 +77,7 @@ object CooldownTimer {
         // Capture reminders are shown as a COUNT-UP (time since capture) during the configured window.
         captureEvents[territoryName] = CaptureEvent(territoryName, captureTimeMillis, false)
 
-        LOGGER.info("Recorded capture for {} — reminder window {}s..{}s", territoryName, CAPTURE_REMINDER_START_SECONDS, CAPTURE_REMINDER_END_SECONDS)
+        LOGGER.info("Recorded capture for {} — will announce when {}s or less remain before 10:00", territoryName, ModConfig.captureReminderBeforeSeconds)
     }
 
     fun getVisibleTimers(): List<VisibleTimer> {
@@ -101,7 +104,8 @@ object CooldownTimer {
             emptyList()
         }
 
-        // Capture reminder timers (visible only inside configured window). These COUNT UP from capture time.
+        // Capture reminder timers (HUD display disabled by request) — keep code commented for easy re-enable.
+        /*
         val captureList = if (ModConfig.enableCaptureReminder && ModConfig.captureReminderShowHud) {
             captureEvents.values.mapNotNull { event ->
                 val windowStart = event.captureTime + (CAPTURE_REMINDER_START_SECONDS * 1000L)
@@ -112,6 +116,8 @@ object CooldownTimer {
                 } else null
             }
         } else emptyList()
+        */  // commented out (Capture HUD disabled)
+        val captureList = emptyList<VisibleTimer>() // capture HUD entries are disabled
 
         // Merge: active + expired first, captures always at the bottom (user request)
         val merged = linkedMapOf<String, VisibleTimer>()
@@ -173,40 +179,32 @@ object CooldownTimer {
 
         timersToRemove.forEach { activeTimers.remove(it) }
 
-        // --- Capture reminder processing ---
+        // --- Capture reminder processing (announcement only; HUD disabled) ---
         if (ModConfig.enableCaptureReminder) {
             val captureToRemove = mutableListOf<String>()
 
             captureEvents.values.forEach { event ->
-                val windowStart = event.captureTime + (CAPTURE_REMINDER_START_SECONDS * 1000L)
-                val windowEnd = event.captureTime + (CAPTURE_REMINDER_END_SECONDS * 1000L)
+                val elapsed = (now - event.captureTime) / 1000L
 
-                // If now is inside the reminder window, trigger one-time announcement/sound
-                if (now in windowStart..windowEnd) {
-                    if (!event.announced) {
-                        event.announced = true
+                // Remaining seconds until the assumed default vulnerable time (600s)
+                val remaining = (DEFAULT_CAPTURE_COOLDOWN_SECONDS - elapsed).coerceAtLeast(0L)
 
-                        // compute remaining until vulnerable (prefer active timer if present)
-                        val remaining = activeTimers[event.territoryName]?.let { timer ->
-                            ((timer.endTime - now) / 1000L).coerceAtLeast(0L)
-                        } ?: run {
-                            val elapsed = (now - event.captureTime) / 1000L
-                            (DEFAULT_CAPTURE_COOLDOWN_SECONDS - elapsed).coerceAtLeast(0L)
-                        }
+                // Trigger one-time announcement when remaining <= configured lead time
+                if (!event.announced && remaining <= ModConfig.captureReminderBeforeSeconds) {
+                    event.announced = true
 
-                        if (ModConfig.captureReminderPlaySound) SoundManager.playCooldownSound()
+                    if (ModConfig.captureReminderPlaySound) SoundManager.playCooldownSound()
 
-                        if (ModConfig.captureReminderAnnounceChat) {
-                            val client = MinecraftClient.getInstance()
-                            client.inGameHud?.chatHud?.addMessage(
-                                Text.translatable("wynn-war-cooldown.chat.capture_reminder", event.territoryName, formatTime(remaining))
-                            )
-                        }
+                    if (ModConfig.captureReminderAnnounceChat) {
+                        val client = MinecraftClient.getInstance()
+                        client.inGameHud?.chatHud?.addMessage(
+                            Text.translatable("wynn-war-cooldown.chat.capture_reminder", event.territoryName, formatTime(remaining))
+                        )
                     }
                 }
 
-                // Remove capture event after its configured end time
-                if (now > windowEnd) {
+                // remove capture event after a small buffer past the default cooldown (legacy behavior: ~10m30s)
+                if (elapsed > DEFAULT_CAPTURE_COOLDOWN_SECONDS + 30L) {
                     captureToRemove.add(event.territoryName)
                 }
             }
