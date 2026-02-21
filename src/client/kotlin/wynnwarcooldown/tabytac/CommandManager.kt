@@ -155,12 +155,29 @@ object CommandManager {
 
     private fun buildToggleCommand() =
         ClientCommandManager.literal("toggle")
+            .then(
+                ClientCommandManager.literal("hud")
+                    .executes {
+                        ModConfig.showTimerHud = !ModConfig.showTimerHud
+                        ModConfig.save()
+                        val status = if (ModConfig.showTimerHud) "visible" else "hidden"
+                        sendChat("wynn-war-cooldown.chat.timer_hud_status", status)
+                        1
+                    }
+            )
+            .then(
+                ClientCommandManager.literal("tracking")
+                    .executes {
+                        ModConfig.isModEnabled = !ModConfig.isModEnabled
+                        ModConfig.save()
+                        val status = if (ModConfig.isModEnabled) "enabled" else "disabled"
+                        sendChat("wynn-war-cooldown.chat.tracking_status", status)
+                        1
+                    }
+            )
             .executes {
-                ModConfig.showTimerHud = !ModConfig.showTimerHud
-                ModConfig.save()
-                val status = if (ModConfig.showTimerHud) "visible" else "hidden"
-                sendChat("wynn-war-cooldown.chat.timer_hud_status", status)
-                1
+                sendChat("wynn-war-cooldown.chat.usage_toggle")
+                0
             }
 
     // TEMP: trigger a capture reminder for testing without actually warring

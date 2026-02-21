@@ -135,6 +135,8 @@ object CooldownTimer {
     }
 
     fun updateTimers() {
+        if (!ModConfig.isModEnabled) return
+
         val now = System.currentTimeMillis()
         val timersToRemove = mutableListOf<String>()
 

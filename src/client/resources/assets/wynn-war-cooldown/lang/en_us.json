@@ -64,6 +64,8 @@
   "wynn-war-cooldown.chat.usage_add": "§6[WWC] §cUsage: /wwc add <territory>",
   "wynn-war-cooldown.chat.cleared_expired": "§6[WWC] §aCleared expired timers from memory",
   "wynn-war-cooldown.chat.timer_hud_status": "§6[WWC] §aTimer HUD is now %s",
+  "wynn-war-cooldown.chat.tracking_status": "§6[WWC] §aTracking is now %s",
+  "wynn-war-cooldown.chat.usage_toggle": "§6[WWC] §cUsage: /wwc toggle <hud|tracking>",
   "wynn-war-cooldown.chat.no_active_cooldowns": "§6[WWC] No active cooldowns",
   "wynn-war-cooldown.chat.active_cooldowns_header": "§6[WWC] === Active Cooldowns ===",
   "wynn-war-cooldown.chat.active_cooldown_line": "§6[WWC] %s → %s",
@@ -74,5 +76,6 @@
   "wynn-war-cooldown.chat.timer_off_cooldown": "§6[WWC] §e%s §7— off cooldown",
 
   "category.wynn-war-cooldown": "Wynn War Cooldown",
-  "key.wynn-war-cooldown.toggle_hud": "Toggle Timer HUD"
+  "key.wynn-war-cooldown.toggle_hud": "Toggle Timer HUD",
+  "key.wynn-war-cooldown.toggle_tracking": "Toggle Mod Cooldown Tracking"
 }
