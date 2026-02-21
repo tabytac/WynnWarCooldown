@@ -32,7 +32,7 @@ data class VisibleTimer(
 
 object CooldownTimer {
     private val LOGGER = LoggerFactory.getLogger("WynnWarCooldown")
-    private const val GUILD_ATTACK_COMMAND = "guild attack"
+    private const val GUILD_ATTACK_COMMAND = "/guild attack"
     private const val DEFAULT_CAPTURE_COOLDOWN_SECONDS = 600L // assumed default for capture -> vulnerable
 
     // private const val CAPTURE_REMINDER_START_SECONDS = 540  // commented out (Capture HUD disabled)
@@ -271,6 +271,6 @@ object CooldownTimer {
 
         LOGGER.info("Player is currently in territory: {}", currentTerritory)
         LOGGER.info("Executing command for {}: {}", territoryName, actualCommand)
-        player.networkHandler?.sendCommand(actualCommand)
+        player.networkHandler?.sendChatMessage(actualCommand)
     }
 }

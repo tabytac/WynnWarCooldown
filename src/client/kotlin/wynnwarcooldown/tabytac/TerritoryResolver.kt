@@ -28,7 +28,8 @@ object TerritoryResolver {
                 it.name == "getTerritoryProfileForPosition" && it.parameterCount == 1
             } ?: return null
 
-            val positionArg = createPositionArgument(method.parameterTypes[0], player.pos) ?: return null
+            val playerPos = net.minecraft.util.math.Vec3d(player.x, player.y, player.z)
+            val positionArg = createPositionArgument(method.parameterTypes[0], playerPos) ?: return null
             val result = method.invoke(territoryModel, positionArg) ?: return null
 
             extractNameFromResult(result)

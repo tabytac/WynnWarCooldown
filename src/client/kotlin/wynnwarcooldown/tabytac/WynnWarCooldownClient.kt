@@ -28,7 +28,7 @@ object WynnWarCooldownClient : ClientModInitializer {
 				"key.wynn-war-cooldown.toggle_hud",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_COMMA, // Default key: Comma
-				"category.wynn-war-cooldown"
+				KeyBinding.Category.MISC
 			)
 		)
 

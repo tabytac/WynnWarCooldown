@@ -3,7 +3,6 @@ package wynnwarcooldown.tabytac
 import net.minecraft.client.MinecraftClient
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
-import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 
@@ -23,21 +22,16 @@ object SoundManager {
 
     fun playSound(soundType: SoundType) {
         val client = MinecraftClient.getInstance()
-        val world = client.world ?: return
-        val player = client.player ?: return
-
         val soundId = getSoundEventForType(soundType) ?: return
 
-        world.playSound(
-            player.x,
-            player.y,
-            player.z,
+        // Play sound using the client's sound manager
+        // ambient() takes (sound, pitch, volume) in that order
+        val soundInstance = net.minecraft.client.sound.PositionedSoundInstance.ambient(
             soundId,
-            SoundCategory.PLAYERS,
-            ModConfig.soundVolume,
-            1.0f,
-            false
+            1.0f,  // pitch
+            ModConfig.soundVolume  // volume
         )
+        client.soundManager.play(soundInstance)
     }
 
     private fun getSoundEventForType(soundType: SoundType): SoundEvent? {

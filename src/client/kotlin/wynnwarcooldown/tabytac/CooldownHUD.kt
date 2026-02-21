@@ -78,13 +78,6 @@ object CooldownHUD {
         }
 
         val textColor = parseHexColor(finalHex)
-        drawContext.matrices.push()
-        drawContext.matrices.translate(
-            (x + (PADDING_X * scale)).toDouble(),
-            (y + (PADDING_Y * scale)).toDouble(),
-            0.0
-        )
-        drawContext.matrices.scale(scale, scale, 1.0f)
 
         // val isCurrent = (timer.type != VisibleTimerType.CAPTURE) && (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))  // commented out (Capture HUD disabled)
         val isCurrent = (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))
@@ -94,14 +87,16 @@ object CooldownHUD {
             Text.literal(label)
         }
 
+        // Draw text with scaling applied
+        val scaledX = (x + (PADDING_X * scale)).toInt()
+        val scaledY = (y + (PADDING_Y * scale)).toInt()
         drawContext.drawTextWithShadow(
             client.textRenderer,
             textComponent,
-            0,
-            0,
+            scaledX,
+            scaledY,
             textColor
         )
-        drawContext.matrices.pop()
     }
 
     private fun parseHexColor(hexString: String): Int {
