@@ -75,7 +75,7 @@
   "wynn-war-cooldown.chat.capture_reminder": "§6[WWC] §e%s §7— off cooldown in %s",
   "wynn-war-cooldown.chat.timer_off_cooldown": "§6[WWC] §e%s §7— off cooldown",
 
-  "category.wynn-war-cooldown": "Wynn War Cooldown",
+  "key.category.wynn-war-cooldown.wynn_war_cooldown": "Wynn War Cooldown",
   "key.wynn-war-cooldown.toggle_hud": "Toggle Timer HUD",
   "key.wynn-war-cooldown.toggle_tracking": "Toggle Mod Cooldown Tracking"
 }

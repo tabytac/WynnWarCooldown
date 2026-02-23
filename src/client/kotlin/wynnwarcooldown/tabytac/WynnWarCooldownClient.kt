@@ -7,11 +7,15 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.util.InputUtil
+import net.minecraft.util.Identifier
 import org.lwjgl.glfw.GLFW
 
 object WynnWarCooldownClient : ClientModInitializer {
 	private lateinit var toggleHudKeyBinding: KeyBinding
 	private lateinit var toggleTrackingKeyBinding: KeyBinding
+	private val keybindingCategory = KeyBinding.Category.create(
+		Identifier.of("wynn-war-cooldown", "wynn_war_cooldown")
+	)
 
 	override fun onInitializeClient() {
 		// Load config from file
@@ -29,7 +33,7 @@ object WynnWarCooldownClient : ClientModInitializer {
 				"key.wynn-war-cooldown.toggle_tracking",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_PERIOD, // Default key: Period
-				KeyBinding.Category.MISC
+				keybindingCategory
 			)
 		)
 
@@ -39,7 +43,7 @@ object WynnWarCooldownClient : ClientModInitializer {
 				"key.wynn-war-cooldown.toggle_hud",
 				InputUtil.Type.KEYSYM,
 				GLFW.GLFW_KEY_COMMA, // Default key: Comma
-				KeyBinding.Category.MISC
+				keybindingCategory
 			)
 		)
 
