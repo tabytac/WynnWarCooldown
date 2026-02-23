@@ -52,26 +52,30 @@ object CooldownTimer {
     private var lastPendingRetryScheduleTime: Long = 0 // Track when retry was scheduled
 
     fun startCooldown(durationSeconds: Long, territoryName: String) {
-        require(durationSeconds > 0) { "Cooldown duration must be positive" }
+        try {
+            require(durationSeconds > 0) { "Cooldown duration must be positive" }
 
-        val client = MinecraftClient.getInstance()
-        if (client.world == null) return
+            val client = MinecraftClient.getInstance()
+            if (client.world == null) return
 
-        val endTime = System.currentTimeMillis() + (durationSeconds * 1000)
-        val timer = TerritoryTimer(territoryName, endTime, false, false)
-        activeTimers[territoryName] = timer
+            val endTime = System.currentTimeMillis() + (durationSeconds * 1000)
+            val timer = TerritoryTimer(territoryName, endTime, false, false)
+            activeTimers[territoryName] = timer
 
-        // If we have a recorded capture event, align its captureTime to the server cooldown start
-        captureEvents[territoryName]?.let { event ->
-            try {
-                event.captureTime = endTime - (durationSeconds * 1000L)
-                LOGGER.info("Synchronized capture event for {} to server cooldown start (captureTime={})", territoryName, event.captureTime)
-            } catch (e: Exception) {
-                LOGGER.debug("Failed to sync capture event for {}: {}", territoryName, e.message)
+            // If we have a recorded capture event, align its captureTime to the server cooldown start
+            captureEvents[territoryName]?.let { event ->
+                try {
+                    event.captureTime = endTime - (durationSeconds * 1000L)
+                    LOGGER.info("Synchronized capture event for {} to server cooldown start (captureTime={})", territoryName, event.captureTime)
+                } catch (e: Exception) {
+                    LOGGER.debug("Failed to sync capture event for {}: {}", territoryName, e.message)
+                }
             }
-        }
 
-        LOGGER.info("Cooldown timer started for {}: {}s, ends at {}", territoryName, durationSeconds, endTime)
+            LOGGER.info("Cooldown timer started for {}: {}s, ends at {}", territoryName, durationSeconds, endTime)
+        } catch (e: Exception) {
+            LOGGER.error("Failed to start cooldown for {}: {}", territoryName, e.message, e)
+        }
     }
 
     /**
@@ -141,56 +145,64 @@ object CooldownTimer {
     }
 
     private fun sendGuildAttack(territoryName: String) {
-        val client = MinecraftClient.getInstance()
-        val player = client.player ?: run {
-            LOGGER.debug("Cannot send /guild attack: no player client")
-            return
-        }
-        val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
-        if (currentTerritory == territoryName) {
-            player.networkHandler?.sendChatMessage(GUILD_ATTACK_COMMAND)
-            LOGGER.info("Sent /guild attack retry for {}", territoryName)
-        } else {
-            LOGGER.debug("Skipped /guild attack retry for {}: currently in {}", territoryName, currentTerritory)
+        try {
+            val client = MinecraftClient.getInstance()
+            val player = client.player ?: run {
+                LOGGER.debug("Cannot send /guild attack: no player client")
+                return
+            }
+            val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
+            if (currentTerritory == territoryName) {
+                player.networkHandler?.sendChatMessage(GUILD_ATTACK_COMMAND)
+                LOGGER.info("Sent /guild attack retry for {}", territoryName)
+            } else {
+                LOGGER.debug("Skipped /guild attack retry for {}: currently in {}", territoryName, currentTerritory)
+            }
+        } catch (e: Exception) {
+            LOGGER.error("Failed to send /guild attack for {}: {}", territoryName, e.message, e)
         }
     }
 
     fun scheduleGuildAttackRetry(secondsRemaining: Int, territoryName: String) {
-        // Pure millisecond-based scheduler for rapid retries
-        val now = System.currentTimeMillis()
+        try {
+            // Pure millisecond-based scheduler for rapid retries
+            val now = System.currentTimeMillis()
 
-        // Dynamic delay based on server's reported remaining seconds
-        // Aim to retry just as the cooldown is about to expire
-        val delayMs = when {
-            secondsRemaining >= 3 -> (secondsRemaining * 1000 - 500).toLong()
-            secondsRemaining == 2 -> 1000L // Wait 1s for 2s remaining
-            secondsRemaining == 1 -> 100L // Wait 100ms for 1s remaining
-            secondsRemaining <= 0 -> 50L // For sub-second or already expired
-            else -> return
+            // Dynamic delay based on server's reported remaining seconds
+            // Aim to retry just as the cooldown is about to expire
+            val delayMs = when {
+                secondsRemaining >= 3 -> (secondsRemaining * 1000 - 500).toLong()
+                secondsRemaining == 2 -> 1000L // Wait 1s for 2s remaining
+                secondsRemaining == 1 -> 100L // Wait 100ms for 1s remaining
+                secondsRemaining <= 0 -> 50L // For sub-second or already expired
+                else -> return
+            }
+
+            // If we're retrying the same territory, just reschedule (don't increment counter)
+            // Counter only increments if this is a fresh retry sequence
+            if (pendingGuildAttackTerritory != territoryName) {
+                pendingGuildAttackRetryCount = 0
+                lastPendingRetryScheduleTime = now
+            }
+
+            // Check if we've exceeded max retries for this territory
+            if (pendingGuildAttackRetryCount >= MAX_GUILD_ATTACK_RETRIES) {
+                LOGGER.error(
+                    "Aborting /guild attack retries for {} after {} attempts; cooldown message persisted",
+                    territoryName,
+                    pendingGuildAttackRetryCount
+                )
+                resetPendingRetry()
+                return
+            }
+
+            pendingGuildAttackRetryCount += 1
+            pendingGuildAttackRetryAt = now + delayMs
+            pendingGuildAttackTerritory = territoryName
+            LOGGER.info("Scheduling /guild attack retry #{} in {}ms for {} ({}s remaining)", pendingGuildAttackRetryCount, delayMs, territoryName, secondsRemaining)
+        } catch (e: Exception) {
+            LOGGER.error("Failed to schedule /guild attack retry for {}: {}", territoryName, e.message, e)
         }
-
-        // If we're retrying the same territory, just reschedule (don't increment counter)
-        // Counter only increments if this is a fresh retry sequence
-        if (pendingGuildAttackTerritory != territoryName) {
-            pendingGuildAttackRetryCount = 0
-            lastPendingRetryScheduleTime = now
-        }
-
-        // Check if we've exceeded max retries for this territory
-        if (pendingGuildAttackRetryCount >= MAX_GUILD_ATTACK_RETRIES) {
-            LOGGER.error(
-                "Aborting /guild attack retries for {} after {} attempts; cooldown message persisted",
-                territoryName,
-                pendingGuildAttackRetryCount
-            )
-            resetPendingRetry()
-            return
-        }
-
-        pendingGuildAttackRetryCount += 1
-        pendingGuildAttackRetryAt = now + delayMs
-        pendingGuildAttackTerritory = territoryName
-        LOGGER.info("Scheduling /guild attack retry #{} in {}ms for {} ({}s remaining)", pendingGuildAttackRetryCount, delayMs, territoryName, secondsRemaining)
     }
 
     private fun resetPendingRetry() {
@@ -247,27 +259,32 @@ object CooldownTimer {
 
         timersToRemove.forEach { activeTimers.remove(it) }
 
-        pendingGuildAttackRetryAt?.let { retryAt ->
-            if (now >= retryAt) {
-                LOGGER.info("Executing pending /guild attack retry #{} for {}", pendingGuildAttackRetryCount, pendingGuildAttackTerritory)
-                pendingGuildAttackTerritory?.let { sendGuildAttack(it) }
+        try {
+            pendingGuildAttackRetryAt?.let { retryAt ->
+                if (now >= retryAt) {
+                    LOGGER.info("Executing pending /guild attack retry #{} for {}", pendingGuildAttackRetryCount, pendingGuildAttackTerritory)
+                    pendingGuildAttackTerritory?.let { sendGuildAttack(it) }
 
-                // Only keep retrying if we haven't exceeded the timeout
-                // If 5 seconds have passed since original schedule with no new cooldown message,
-                // assume the attack succeeded
-                val timeSinceSchedule = now - lastPendingRetryScheduleTime
-                if (timeSinceSchedule < 5000L && pendingGuildAttackTerritory != null) {
-                    // Schedule aggressive 50ms retry in case first attempt failed
-                    pendingGuildAttackRetryAt = now + 50L
-                    LOGGER.debug("Rescheduling aggressive retry in 50ms ({}ms since initial schedule)", timeSinceSchedule)
-                } else {
-                    // Either 5 seconds passed or no territory set; clear the retry
-                    if (timeSinceSchedule >= 5000L) {
-                        LOGGER.info("Clearing /guild attack retry for {} (5s timeout, assuming success)", pendingGuildAttackTerritory)
+                    // Only keep retrying if we haven't exceeded the timeout
+                    // If 5 seconds have passed since original schedule with no new cooldown message,
+                    // assume the attack succeeded
+                    val timeSinceSchedule = now - lastPendingRetryScheduleTime
+                    if (timeSinceSchedule < 5000L && pendingGuildAttackTerritory != null) {
+                        // Schedule aggressive 50ms retry in case first attempt failed
+                        pendingGuildAttackRetryAt = now + 50L
+                        LOGGER.debug("Rescheduling aggressive retry in 50ms ({}ms since initial schedule)", timeSinceSchedule)
+                    } else {
+                        // Either 5 seconds passed or no territory set; clear the retry
+                        if (timeSinceSchedule >= 5000L) {
+                            LOGGER.info("Clearing /guild attack retry for {} (5s timeout, assuming success)", pendingGuildAttackTerritory)
+                        }
+                        resetPendingRetry()
                     }
-                    resetPendingRetry()
                 }
             }
+        } catch (e: Exception) {
+            LOGGER.error("Failed to execute /guild attack retry: {}", e.message, e)
+            resetPendingRetry()
         }
 
         // --- Capture reminder processing (announcement only; HUD disabled) ---
