@@ -27,13 +27,13 @@ enum class HudAlignment {
 
 object ModConfig {
     var isModEnabled = true
-    var timerOffsetSeconds = 1
+    var timerOffsetSeconds = 0
     var soundPlayOffsetSeconds = 0
     var sendGuildAttackAtEnd = true
     var showTimerHud = true
     var hudXPercent = 0.2f
-    var hudYPercent = 0.4f
-    var hudAlignment: HudAlignment = HudAlignment.CENTER
+    var hudYPercent = 0.3f
+    var hudAlignment: HudAlignment = HudAlignment.RIGHT
     var soundVolume = 1.0f
     var selectedSound = SoundType.WAR_HORN
     var showBackgroundBox = false

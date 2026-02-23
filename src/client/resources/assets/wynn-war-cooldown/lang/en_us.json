@@ -17,7 +17,7 @@
   "wynn-war-cooldown.hud_alignment.right": "Right",
   "wynn-war-cooldown.config.timer": "Timer",
   "wynn-war-cooldown.config.offset": "Timer Offset (seconds)",
-  "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = later, Negative = earlier. Default set to 1 second to account for any server lag.",
+  "wynn-war-cooldown.config.offset.tooltip": "Adjust when the timer ends relative to the cooldown. Positive = later, Negative = earlier.",
   "wynn-war-cooldown.config.sound_offset": "Sound Play Offset (seconds)",
   "wynn-war-cooldown.config.sound_offset.tooltip": "When to play sound relative to timer end. Positive = after, Negative = before",
   "wynn-war-cooldown.config.format": "Time Format",
@@ -50,7 +50,6 @@
   "wynn-war-cooldown.config.capture_before_vulnerable.tooltip": "Send the capture reminder when the 10-minute cooldown has this many seconds remaining (e.g. 30 = 0:30 remaining)",
   "wynn-war-cooldown.config.announce_off_cooldown": "Announce when a timer finishes",
   "wynn-war-cooldown.config.announce_off_cooldown.tooltip": "Send a chat message when a regular cooldown timer finishes",
-
   "wynn-war-cooldown.chat.playing_sound": "§6[WWC] Playing sound: %s",
   "wynn-war-cooldown.chat.playing_default_sound": "§6[WWC] Playing default cooldown sound",
   "wynn-war-cooldown.chat.unknown_sound_type": "§6[WWC] §cUnknown sound type: %s",

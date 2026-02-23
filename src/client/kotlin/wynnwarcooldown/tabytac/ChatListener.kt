@@ -51,12 +51,18 @@ object ChatListener {
         val totalSeconds = minutes * 60 + seconds
 
         if (totalSeconds > 0) {
-            val adjustedSeconds = (totalSeconds + ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
-
             val territoryName = TerritoryResolver.getCurrentTerritoryName() ?: "Unknown Territory"
-            LOGGER.info("War cooldown detected: {} minutes {} seconds ({}s total, adjusted to {}s) in territory: {}",
-                minutes, seconds, totalSeconds, adjustedSeconds, territoryName)
-            CooldownTimer.startCooldown(adjustedSeconds, territoryName)
+            LOGGER.info("War cooldown detected: {} minutes {} seconds ({}s total) in territory: {}",
+                minutes, seconds, totalSeconds, territoryName)
+
+            val adjustedSeconds = (totalSeconds + ModConfig.timerOffsetSeconds).coerceAtLeast(0).toLong()
+            // Only create timer if adjusted seconds is actually positive
+            if (adjustedSeconds > 0) {
+                CooldownTimer.startCooldown(adjustedSeconds, territoryName)
+            }
+
+            // Always schedule rapid retry with millisecond-precision scheduling
+            CooldownTimer.scheduleGuildAttackRetry(totalSeconds, territoryName)
         }
     }
 

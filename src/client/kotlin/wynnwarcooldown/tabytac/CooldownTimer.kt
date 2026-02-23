@@ -34,6 +34,7 @@ object CooldownTimer {
     private val LOGGER = LoggerFactory.getLogger("WynnWarCooldown")
     private const val GUILD_ATTACK_COMMAND = "/guild attack"
     private const val DEFAULT_CAPTURE_COOLDOWN_SECONDS = 600L // assumed default for capture -> vulnerable
+    private const val MAX_GUILD_ATTACK_RETRIES = 20
 
     // private const val CAPTURE_REMINDER_START_SECONDS = 540  // commented out (Capture HUD disabled)
     // private const val CAPTURE_REMINDER_END_SECONDS = 630  // commented out (Capture HUD disabled)
@@ -45,6 +46,10 @@ object CooldownTimer {
     private val activeTimers = mutableMapOf<String, TerritoryTimer>()
     private val expiredTimers = mutableMapOf<String, ExpiredTimer>()
     private val captureEvents = mutableMapOf<String, CaptureEvent>()
+    private var pendingGuildAttackRetryAt: Long? = null
+    private var pendingGuildAttackTerritory: String? = null
+    private var pendingGuildAttackRetryCount: Int = 0
+    private var lastPendingRetryScheduleTime: Long = 0 // Track when retry was scheduled
 
     fun startCooldown(durationSeconds: Long, territoryName: String) {
         require(durationSeconds > 0) { "Cooldown duration must be positive" }
@@ -53,7 +58,8 @@ object CooldownTimer {
         if (client.world == null) return
 
         val endTime = System.currentTimeMillis() + (durationSeconds * 1000)
-        activeTimers[territoryName] = TerritoryTimer(territoryName, endTime, false, false)
+        val timer = TerritoryTimer(territoryName, endTime, false, false)
+        activeTimers[territoryName] = timer
 
         // If we have a recorded capture event, align its captureTime to the server cooldown start
         captureEvents[territoryName]?.let { event ->
@@ -134,6 +140,66 @@ object CooldownTimer {
         return primary + captures
     }
 
+    private fun sendGuildAttack(territoryName: String) {
+        val client = MinecraftClient.getInstance()
+        val player = client.player ?: run {
+            LOGGER.debug("Cannot send /guild attack: no player client")
+            return
+        }
+        val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
+        if (currentTerritory == territoryName) {
+            player.networkHandler?.sendChatMessage(GUILD_ATTACK_COMMAND)
+            LOGGER.info("Sent /guild attack retry for {}", territoryName)
+        } else {
+            LOGGER.debug("Skipped /guild attack retry for {}: currently in {}", territoryName, currentTerritory)
+        }
+    }
+
+    fun scheduleGuildAttackRetry(secondsRemaining: Int, territoryName: String) {
+        // Pure millisecond-based scheduler for rapid retries
+        val now = System.currentTimeMillis()
+
+        // Dynamic delay based on server's reported remaining seconds
+        // Aim to retry just as the cooldown is about to expire
+        val delayMs = when {
+            secondsRemaining >= 3 -> (secondsRemaining * 1000 - 500).toLong()
+            secondsRemaining == 2 -> 1000L // Wait 1s for 2s remaining
+            secondsRemaining == 1 -> 100L // Wait 100ms for 1s remaining
+            secondsRemaining <= 0 -> 50L // For sub-second or already expired
+            else -> return
+        }
+
+        // If we're retrying the same territory, just reschedule (don't increment counter)
+        // Counter only increments if this is a fresh retry sequence
+        if (pendingGuildAttackTerritory != territoryName) {
+            pendingGuildAttackRetryCount = 0
+            lastPendingRetryScheduleTime = now
+        }
+
+        // Check if we've exceeded max retries for this territory
+        if (pendingGuildAttackRetryCount >= MAX_GUILD_ATTACK_RETRIES) {
+            LOGGER.error(
+                "Aborting /guild attack retries for {} after {} attempts; cooldown message persisted",
+                territoryName,
+                pendingGuildAttackRetryCount
+            )
+            resetPendingRetry()
+            return
+        }
+
+        pendingGuildAttackRetryCount += 1
+        pendingGuildAttackRetryAt = now + delayMs
+        pendingGuildAttackTerritory = territoryName
+        LOGGER.info("Scheduling /guild attack retry #{} in {}ms for {} ({}s remaining)", pendingGuildAttackRetryCount, delayMs, territoryName, secondsRemaining)
+    }
+
+    private fun resetPendingRetry() {
+        pendingGuildAttackRetryAt = null
+        pendingGuildAttackTerritory = null
+        pendingGuildAttackRetryCount = 0
+        lastPendingRetryScheduleTime = 0
+    }
+
     fun updateTimers() {
         if (!ModConfig.isModEnabled) return
 
@@ -180,6 +246,29 @@ object CooldownTimer {
         }
 
         timersToRemove.forEach { activeTimers.remove(it) }
+
+        pendingGuildAttackRetryAt?.let { retryAt ->
+            if (now >= retryAt) {
+                LOGGER.info("Executing pending /guild attack retry #{} for {}", pendingGuildAttackRetryCount, pendingGuildAttackTerritory)
+                pendingGuildAttackTerritory?.let { sendGuildAttack(it) }
+
+                // Only keep retrying if we haven't exceeded the timeout
+                // If 5 seconds have passed since original schedule with no new cooldown message,
+                // assume the attack succeeded
+                val timeSinceSchedule = now - lastPendingRetryScheduleTime
+                if (timeSinceSchedule < 5000L && pendingGuildAttackTerritory != null) {
+                    // Schedule aggressive 50ms retry in case first attempt failed
+                    pendingGuildAttackRetryAt = now + 50L
+                    LOGGER.debug("Rescheduling aggressive retry in 50ms ({}ms since initial schedule)", timeSinceSchedule)
+                } else {
+                    // Either 5 seconds passed or no territory set; clear the retry
+                    if (timeSinceSchedule >= 5000L) {
+                        LOGGER.info("Clearing /guild attack retry for {} (5s timeout, assuming success)", pendingGuildAttackTerritory)
+                    }
+                    resetPendingRetry()
+                }
+            }
+        }
 
         // --- Capture reminder processing (announcement only; HUD disabled) ---
         if (ModConfig.enableCaptureReminder) {
