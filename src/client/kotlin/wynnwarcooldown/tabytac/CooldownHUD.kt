@@ -11,7 +11,7 @@ object CooldownHUD {
     private const val BACKGROUND_COLOR = 0x80000000.toInt() // Semi-transparent black
     private const val PADDING_X = 10
     private const val PADDING_Y = 6
-    private const val LINE_SPACING = 4
+    private const val LINE_SPACING = 2
     private const val SCALE_MIN = 0.1f
     private const val SCALE_MAX = 5.0f
 
@@ -23,80 +23,81 @@ object CooldownHUD {
 
         val client = MinecraftClient.getInstance()
         val scale = ModConfig.hudScale.coerceIn(SCALE_MIN, SCALE_MAX)
-
         val currentTerritory = TerritoryResolver.getCurrentTerritoryName()
-        visibleTimers.forEachIndexed { index, timer ->
-        val label = when (timer.type) {
+
+        // First pass: Build labels and calculate max width for unified box
+        val timerLabels = visibleTimers.map { timer ->
+            when (timer.type) {
                 // VisibleTimerType.CAPTURE -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"  // commented out (Capture HUD disabled)
                 VisibleTimerType.EXPIRED -> "${timer.territoryName}: Ready"
                 else -> "${timer.territoryName}: ${CooldownTimer.formatTime(timer.seconds)}"
             }
-            val yOffset = (index * (client.textRenderer.fontHeight + LINE_SPACING) * scale).roundToInt()
-            renderTimerLine(drawContext, client, label, yOffset, scale, timer, currentTerritory)
         }
-    }
 
-    private fun renderTimerLine(
-        drawContext: DrawContext,
-        client: MinecraftClient,
-        label: String,
-        yOffset: Int,
-        scale: Float,
-        timer: VisibleTimer,
-        currentTerritory: String?
-    ) {
-        val screenWidth = client.window.scaledWidth
-        val screenHeight = client.window.scaledHeight
-        val textWidth = client.textRenderer.getWidth(label)
+        val maxTextWidth = timerLabels.maxOfOrNull { client.textRenderer.getWidth(it) } ?: return
         val textHeight = client.textRenderer.fontHeight
 
-        val boxWidth = ((textWidth + (PADDING_X * 2)) * scale).roundToInt()
-        val boxHeight = ((textHeight + (PADDING_Y * 2)) * scale).roundToInt()
+        val screenWidth = client.window.scaledWidth
+        val screenHeight = client.window.scaledHeight
 
+        // Calculate unified box dimensions
+        val boxWidth = ((maxTextWidth + (PADDING_X * 2)) * scale).roundToInt()
+        val totalHeight = (visibleTimers.size * textHeight + (visibleTimers.size - 1) * LINE_SPACING)
+        val boxHeight = ((totalHeight + (PADDING_Y * 2)) * scale).roundToInt()
+
+        // Position the unified box - hudXPercent determines different anchor points based on alignment
+        val baseX = screenWidth * ModConfig.hudXPercent
         val rawX = when (ModConfig.hudAlignment) {
-            HudAlignment.CENTER -> (screenWidth / 2f) - (boxWidth / 2f)
-            HudAlignment.LEFT -> (screenWidth * ModConfig.hudXPercent)
-            HudAlignment.RIGHT -> (screenWidth * (1f - ModConfig.hudXPercent)) - boxWidth
+            HudAlignment.LEFT -> baseX  // hudXPercent is top-left corner
+            HudAlignment.CENTER -> baseX - (boxWidth / 2f)  // hudXPercent is top-center
+            HudAlignment.RIGHT -> baseX - boxWidth  // hudXPercent is top-right corner
         }
         val baseY = screenHeight * ModConfig.hudYPercent
-        val rawY = baseY + yOffset - (boxHeight / 2f)
-
         val x = rawX.toInt().coerceIn(0, screenWidth - boxWidth)
-        val y = rawY.toInt().coerceIn(0, screenHeight - boxHeight)
+        val y = (baseY - (boxHeight / 2f)).toInt().coerceIn(0, screenHeight - boxHeight)
 
-        // Draw background box if enabled
+        // Draw unified background box if enabled
         if (ModConfig.showBackgroundBox) {
             drawContext.fill(x, y, x + boxWidth, y + boxHeight, BACKGROUND_COLOR)
         }
 
-        // Determine color: capture override, current override (only for non-capture), expired, or default
-        val finalHex = when {
-            // timer.type == VisibleTimerType.CAPTURE -> ModConfig.captureTextColorHex  // commented out (Capture HUD disabled)
-            currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
-            timer.seconds == 0L && timer.type == VisibleTimerType.EXPIRED -> ModConfig.expiredTextColorHex
-            else -> ModConfig.textColorHex
+        // Second pass: Render each timer line within the unified box
+        visibleTimers.forEachIndexed { index, timer ->
+            val label = timerLabels[index]
+            val textWidth = client.textRenderer.getWidth(label)
+            val yOffset = (index * (textHeight + LINE_SPACING) * scale).roundToInt()
+
+            // Determine color
+            val finalHex = when {
+                currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true) -> ModConfig.currentTextColorHex
+                timer.seconds == 0L && timer.type == VisibleTimerType.EXPIRED -> ModConfig.expiredTextColorHex
+                else -> ModConfig.textColorHex
+            }
+            val textColor = parseHexColor(finalHex)
+
+            val isCurrent = currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true)
+            val textComponent: Text = if (isCurrent) {
+                Text.literal(label).formatted(Formatting.BOLD)
+            } else {
+                Text.literal(label)
+            }
+
+            // Text position within unified box based on alignment setting
+            val textX = when (ModConfig.hudAlignment) {
+                HudAlignment.LEFT -> (x + (PADDING_X * scale)).toInt()
+                HudAlignment.CENTER -> (x + (boxWidth / 2f) - (textWidth * scale / 2f)).toInt()
+                HudAlignment.RIGHT -> (x + boxWidth - (textWidth * scale) - (PADDING_X * scale)).toInt()
+            }
+            val textY = (y + (PADDING_Y * scale) + yOffset).toInt()
+
+            drawContext.drawTextWithShadow(
+                client.textRenderer,
+                textComponent,
+                textX,
+                textY,
+                textColor
+            )
         }
-
-        val textColor = parseHexColor(finalHex)
-
-        // val isCurrent = (timer.type != VisibleTimerType.CAPTURE) && (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))  // commented out (Capture HUD disabled)
-        val isCurrent = (currentTerritory != null && timer.territoryName.equals(currentTerritory, ignoreCase = true))
-        val textComponent: Text = if (isCurrent) {
-            Text.literal(label).formatted(Formatting.BOLD)
-        } else {
-            Text.literal(label)
-        }
-
-        // Draw text with scaling applied
-        val scaledX = (x + (PADDING_X * scale)).toInt()
-        val scaledY = (y + (PADDING_Y * scale)).toInt()
-        drawContext.drawTextWithShadow(
-            client.textRenderer,
-            textComponent,
-            scaledX,
-            scaledY,
-            textColor
-        )
     }
 
     private fun parseHexColor(hexString: String): Int {

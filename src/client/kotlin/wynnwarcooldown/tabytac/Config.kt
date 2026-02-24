@@ -31,8 +31,8 @@ object ModConfig {
     var soundPlayOffsetSeconds = 0
     var sendGuildAttackAtEnd = true
     var showTimerHud = true
-    var hudXPercent = 0.2f
-    var hudYPercent = 0.3f
+    var hudXPercent = 0.8f
+    var hudYPercent = 0.25f
     var hudAlignment: HudAlignment = HudAlignment.RIGHT
     var soundVolume = 1.0f
     var selectedSound = SoundType.WAR_HORN
@@ -89,9 +89,9 @@ object ModConfig {
         val soundPlayOffsetSeconds: Int = 0,
         val sendGuildAttackAtEnd: Boolean = true,
         val showTimerHud: Boolean = true,
-        val hudXPercent: Float = 0.2f,
-        val hudYPercent: Float = 0.4f,
-        val hudAlignment: String = "CENTER",
+        val hudXPercent: Float = 0.8f,
+        val hudYPercent: Float = 0.25f,
+        val hudAlignment: String = "RIGHT",
         val soundVolume: Float = 1.0f,
         val selectedSound: String = "WAR_HORN",
         val showBackgroundBox: Boolean = false,
@@ -124,7 +124,7 @@ object ModConfig {
             sendGuildAttackAtEnd = data.sendGuildAttackAtEnd
             showTimerHud = data.showTimerHud
             hudXPercent = data.hudXPercent
-            try { hudAlignment = HudAlignment.valueOf(data.hudAlignment) } catch (_: Exception) { hudAlignment = HudAlignment.CENTER }
+            try { hudAlignment = HudAlignment.valueOf(data.hudAlignment) } catch (_: Exception) { hudAlignment = HudAlignment.RIGHT }
             hudYPercent = data.hudYPercent
             soundVolume = data.soundVolume
             selectedSound = SoundType.valueOf(data.selectedSound)
@@ -264,7 +264,7 @@ object ModConfig {
                 HudAlignment.values(),
                 hudAlignment
             )
-                .setDefaultValue(HudAlignment.CENTER)
+                .setDefaultValue(HudAlignment.RIGHT)
                 .setSaveConsumer { hudAlignment = it }
                 .setTooltip(Text.translatable("wynn-war-cooldown.config.hud_alignment.tooltip"))
                 .build()
